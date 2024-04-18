@@ -1,26 +1,19 @@
-﻿// Lab8 - Shadow mapping.cpp : Defines the entry point for the console application.
-//
-
-#include <stdlib.h>
+﻿#include <stdlib.h>
 #include <stdio.h>
-
 #include <GL/glew.h>
-
 #define GLM_FORCE_CTOR_INIT 
 #include <GLM.hpp>a
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
-
 #include <glfw3.h>
-
 #include "Camera.h"
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
-
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#include "Scene.h"
+#include "Shader.h"
 
 #pragma comment (lib, "glfw3dll.lib")
 #pragma comment (lib, "glew32.lib")
@@ -30,139 +23,6 @@
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 bool rotateLight = true;
-
-
-class Shader
-{
-public:
-    // constructor generates the shaderStencilTesting on the fly
-    // ------------------------------------------------------------------------
-    Shader(const char* vertexPath, const char* fragmentPath)
-    {
-        Init(vertexPath, fragmentPath);
-    }
-
-    ~Shader()
-    {
-        glDeleteProgram(ID);
-    }
-
-    // activate the shaderStencilTesting
-    // ------------------------------------------------------------------------
-    void Use() const
-    {
-        glUseProgram(ID);
-    }
-
-    unsigned int GetID() const { return ID; }
-
-    // MVP
-    unsigned int loc_model_matrix;
-    unsigned int loc_view_matrix;
-    unsigned int loc_projection_matrix;
-
-    // utility uniform functions
-    void SetInt(const std::string& name, int value) const
-    {
-        glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
-    }
-    void SetFloat(const std::string& name, float value) const
-    {
-        glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
-    }
-    void SetVec3(const std::string& name, const glm::vec3& value) const
-    {
-        glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
-    }
-    void SetVec3(const std::string& name, float x, float y, float z) const
-    {
-        glUniform3f(glGetUniformLocation(ID, name.c_str()), x, y, z);
-    }
-    void SetMat4(const std::string& name, const glm::mat4& mat) const
-    {
-        glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
-    }
-
-private:
-    void Init(const char* vertexPath, const char* fragmentPath)
-    {
-        // 1. retrieve the vertex/fragment source code from filePath
-        std::string vertexCode;
-        std::string fragmentCode;
-        std::ifstream vShaderFile;
-        std::ifstream fShaderFile;
-        // ensure ifstream objects can throw exceptions:
-        vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-        fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-        try {
-            // open files
-            vShaderFile.open(vertexPath);
-            fShaderFile.open(fragmentPath);
-            std::stringstream vShaderStream, fShaderStream;
-            // read file's buffer contents into streams
-            vShaderStream << vShaderFile.rdbuf();
-            fShaderStream << fShaderFile.rdbuf();
-            // close file handlers
-            vShaderFile.close();
-            fShaderFile.close();
-            // convert stream into string
-            vertexCode = vShaderStream.str();
-            fragmentCode = fShaderStream.str();
-        }
-        catch (std::ifstream::failure e) {
-            std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
-        }
-        const char* vShaderCode = vertexCode.c_str();
-        const char* fShaderCode = fragmentCode.c_str();
-
-        // 2. compile shaders
-        unsigned int vertex, fragment;
-        // vertex shaderStencilTesting
-        vertex = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertex, 1, &vShaderCode, NULL);
-        glCompileShader(vertex);
-        CheckCompileErrors(vertex, "VERTEX");
-        // fragment Shader
-        fragment = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(fragment, 1, &fShaderCode, NULL);
-        glCompileShader(fragment);
-        CheckCompileErrors(fragment, "FRAGMENT");
-        // shaderStencilTesting Program
-        ID = glCreateProgram();
-        glAttachShader(ID, vertex);
-        glAttachShader(ID, fragment);
-        glLinkProgram(ID);
-        CheckCompileErrors(ID, "PROGRAM");
-
-        // 3. delete the shaders as they're linked into our program now and no longer necessery
-        glDeleteShader(vertex);
-        glDeleteShader(fragment);
-    }
-
-    // utility function for checking shaderStencilTesting compilation/linking errors.
-    // ------------------------------------------------------------------------
-    void CheckCompileErrors(unsigned int shaderStencilTesting, std::string type)
-    {
-        GLint success;
-        GLchar infoLog[1024];
-        if (type != "PROGRAM") {
-            glGetShaderiv(shaderStencilTesting, GL_COMPILE_STATUS, &success);
-            if (!success) {
-                glGetShaderInfoLog(shaderStencilTesting, 1024, NULL, infoLog);
-                std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
-            }
-        }
-        else {
-            glGetProgramiv(shaderStencilTesting, GL_LINK_STATUS, &success);
-            if (!success) {
-                glGetProgramInfoLog(shaderStencilTesting, 1024, NULL, infoLog);
-                std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
-            }
-        }
-    }
-private:
-    unsigned int ID;
-};
 
 Camera* pCamera = nullptr;
 
@@ -207,10 +67,6 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
-
-void renderScene(const Shader& shader);
-void renderCube();
-void renderFloor();
 
 // timing
 double deltaTime = 0.0f;	// time between current frame and last frame
@@ -263,7 +119,7 @@ int main(int argc, char** argv)
 
     // load textures
     // -------------
-    unsigned int floorTexture = CreateTexture(strExePath + "\\ColoredFloor.png");
+    unsigned int floorTexture = CreateTexture(strExePath + "\\Glass.png");
 
     // configure depth map FBO
     // -----------------------
@@ -350,7 +206,8 @@ int main(int argc, char** argv)
         glBindTexture(GL_TEXTURE_2D, floorTexture);
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
-        renderScene(shadowMappingDepthShader);
+        Scene scene;
+        scene.renderScene(shadowMappingDepthShader);
         glCullFace(GL_BACK);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -375,7 +232,7 @@ int main(int argc, char** argv)
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
         glDisable(GL_CULL_FACE);
-        renderScene(shadowMappingShader);
+        scene.renderScene(shadowMappingShader);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);
@@ -387,167 +244,6 @@ int main(int argc, char** argv)
 
     glfwTerminate();
     return 0;
-}
-
-// renders the 3D scene
-// --------------------
-void renderScene(const Shader& shader)
-{
-    // floor
-    glm::mat4 model;
-    shader.SetMat4("model", model);
-    renderFloor();
-
-    // cube
-    model = glm::mat4();
-    model = glm::translate(model, glm::vec3(0.0f, 1.75f, 0.0));
-    model = glm::scale(model, glm::vec3(0.75f));
-    shader.SetMat4("model", model);
-    renderCube();
-
-    // cube 1
-    model = glm::mat4();
-    model = glm::translate(model, glm::vec3(0.0f, 1.75f, 0.0));
-    model = glm::scale(model, glm::vec3(0.75f));
-    shader.SetMat4("model", model);
-    renderCube();
-
-    // Cube 2
-    model = glm::mat4();
-    model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f)); // Adjusted Y position
-    model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Changed rotation axis and angle
-    model = glm::scale(model, glm::vec3(0.7f)); // Adjusted scale
-    shader.SetMat4("model", model);
-    renderCube();
-
-    // Cube 3
-    model = glm::mat4();
-    model = glm::translate(model, glm::vec3(-3.0f, 0.5f, 2.0f)); // Adjusted position
-    model = glm::rotate(model, glm::radians(30.0f), glm::vec3(1.0f, 1.0f, 1.0f)); // Changed rotation axis and angle
-    model = glm::scale(model, glm::vec3(0.6f)); // Adjusted scale
-    shader.SetMat4("model", model);
-    renderCube();
-
-
-    // Cube 4
-    model = glm::mat4();
-    model = glm::translate(model, glm::vec3(-2.0f, 0.5f, -3.0f));
-    model = glm::rotate(model, glm::radians(30.0f), glm::vec3(1.0f, 1.0f, 1.0f));
-    model = glm::scale(model, glm::vec3(0.5f));
-    shader.SetMat4("model", model);
-    renderCube();
-}
-
-unsigned int planeVAO = 0;
-void renderFloor()
-{
-    unsigned int planeVBO;
-
-    if (planeVAO == 0) {
-        // set up vertex data (and buffer(s)) and configure vertex attributes
-        float planeVertices[] = {
-            // positions            // normals         // texcoords
-            25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-            -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
-            -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
-
-            25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-            -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
-            25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 25.0f
-        };
-        // plane VAO
-        glGenVertexArrays(1, &planeVAO);
-        glGenBuffers(1, &planeVBO);
-        glBindVertexArray(planeVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-        glBindVertexArray(0);
-    }
-
-    glBindVertexArray(planeVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-}
-
-
-// renderCube() renders a 1x1 3D cube in NDC.
-// -------------------------------------------------
-unsigned int cubeVAO = 0;
-unsigned int cubeVBO = 0;
-void renderCube()
-{
-    // initialize (if necessary)
-    if (cubeVAO == 0)
-    {
-        float vertices[] = {
-            // back face
-            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-            1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-            1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
-            1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-            -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
-            // front face
-            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
-            1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
-            1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
-            1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
-            -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
-            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
-            // left face
-            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
-            -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
-            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
-            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
-            -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
-            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
-            // right face
-            1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-            1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-            1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
-            1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-            1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-            1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
-            // bottom face
-            -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-            1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
-            1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-            1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-            -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
-            -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-            // top face
-            -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-            1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-            1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
-            1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-            -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-            -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
-        };
-        glGenVertexArrays(1, &cubeVAO);
-        glGenBuffers(1, &cubeVBO);
-        // fill buffer
-        glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-        // link vertex attributes
-        glBindVertexArray(cubeVAO);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-    }
-    // render Cube
-    glBindVertexArray(cubeVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    glBindVertexArray(0);
 }
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
@@ -599,11 +295,4 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yOffset)
 {
     pCamera->ProcessMouseScroll((float)yOffset);
 }
-//------------------------------------------------------------------
-
-//------------------------------------------------------------------
-//------------------------------------------------------------------
-
-
-
 
