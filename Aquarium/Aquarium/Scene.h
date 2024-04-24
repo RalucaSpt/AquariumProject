@@ -4,6 +4,7 @@
 
 #include "CubeObj.h"
 #include "Floor.h"
+#include "Model.h"
 #include "Shader.h"
 
 class Shader;
@@ -56,7 +57,8 @@ public:
         cube.renderCube();
     }
 
-    void renderScene(const Shader& shader)
+    void renderScene(Shader& shader, Model& fishObjModel
+    )
     {
         // floor
         glm::mat4 model;
@@ -66,6 +68,12 @@ public:
         CubeObj cube;
 
         renderCubes(const_cast<Shader&>(shader), cube);
+
+        glm::mat4 fishModel = glm::scale(glm::mat4(1.0), glm::vec3(0.1f));
+        shader.SetMat4("model", fishModel);
+        fishObjModel.Draw(shader);
+
+
     }
 };
 

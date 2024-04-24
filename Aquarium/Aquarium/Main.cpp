@@ -1,4 +1,6 @@
-﻿#include <stdlib.h>
+﻿#include "Texture.h"
+
+#include <stdlib.h>
 #include <stdio.h>
 #include <GL/glew.h>
 #define GLM_FORCE_CTOR_INIT 
@@ -11,9 +13,15 @@
 #include <fstream>
 #include <sstream>
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+
+#include <codecvt>
+
 #include "Scene.h"
 #include "Shader.h"
+#include "Model.h"
+#include <Windows.h>
+#include <locale>
+#include <math.h> 
 
 #pragma comment (lib, "glfw3dll.lib")
 #pragma comment (lib, "glew32.lib")
@@ -22,9 +30,16 @@
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
+
 bool rotateLight = true;
 
+GLuint ProjMatrixLocation, ViewMatrixLocation, WorldMatrixLocation;
 Camera* pCamera = nullptr;
+
+void Cleanup()
+{
+    delete pCamera;
+}
 
 unsigned int CreateTexture(const std::string& strTexturePath, float alpha)
 {
@@ -71,6 +86,13 @@ void processInput(GLFWwindow* window);
 double deltaTime = 0.0f;	// time between current frame and last frame
 double lastFrame = 0.0f;
 
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_A && action == GLFW_PRESS) {
+
+    }
+}
+
 int main(int argc, char** argv)
 {
     std::string strFullExeFileName = argv[0];
@@ -94,13 +116,17 @@ int main(int argc, char** argv)
         return -1;
     }
 
+
+
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetKeyCallback(window, key_callback);
+
 
     // tell GLFW to capture our mouse
-    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glewInit();
 
@@ -111,15 +137,36 @@ int main(int argc, char** argv)
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
+    wchar_t buffer[MAX_PATH];
+    GetCurrentDirectoryW(MAX_PATH, buffer);
+
+    std::wstring executablePath(buffer);
+    std::wstring wscurrentPath = executablePath.substr(0, executablePath.find_last_of(L"\\/"));
+
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+    std::string currentPath = converter.to_bytes(wscurrentPath);
+
     // build and compile shaders
     // -------------------------
     Shader shadowMappingShader("ShadowMapping.vs", "ShadowMapping.fs");
     Shader shadowMappingDepthShader("ShadowMappingDepth.vs", "ShadowMappingDepth.fs");
 
+    std::string objFileName = (currentPath + "\\Models\\CylinderProject.obj");
+    Model objModel(objFileName, false);
+
+    std::string piratObjFileName = (currentPath + "\\Models\\Pirat\\Pirat.obj");
+    Model piratObjModel(piratObjFileName, false);
+
+    std::string fishObjFileName = (currentPath + "\\Models\\Fish\\fish.obj");
+    Model fishObjModel(fishObjFileName, false);
+
     // load textures
     // -------------
     unsigned int floorTexture = CreateTexture(strExePath + "\\Glass.png",
         		0.05f);
+
+    unsigned int fishTexture = CreateTexture(strExePath + "\\fish.jpg",
+		1.0f);
 
     // configure depth map FBO
     // -----------------------
@@ -215,9 +262,15 @@ int main(int argc, char** argv)
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
         Scene scene;
-        scene.renderScene(shadowMappingDepthShader);
+        scene.renderScene(shadowMappingDepthShader,fishObjModel);
         glCullFace(GL_BACK);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        /*glm::mat4 piratModel = glm::scale(glm::mat4(1.0), glm::vec3(1.f));
+        shadowMappingDepthShader.setMat4("model", piratModel);
+        piratObjModel.Draw(shadowMappingDepthShader);*/
+
+
 
         // reset viewport
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
@@ -246,7 +299,13 @@ int main(int argc, char** argv)
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
         glDisable(GL_CULL_FACE);
-        scene.renderScene(shadowMappingShader);
+        scene.renderScene(shadowMappingShader, fishObjModel);
+
+        /*glm::mat4 piratModel = glm::scale(glm::mat4(1.0), glm::vec3(1.f));
+        shadowMappingShader.SetMat4("model", piratModel);
+        piratObjModel.Draw(shadowMappingShader);*/
+
+        
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);

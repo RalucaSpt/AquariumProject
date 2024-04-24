@@ -79,5 +79,5 @@ void main()
     vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;    
     
     // Apply transparency
-    FragColor = vec4(lighting,0.5f);
+    FragColor = vec4(lighting,1.0f);
 }
