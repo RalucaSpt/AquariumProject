@@ -78,8 +78,11 @@ public:
         glBindVertexArray(0);
     }
 
+    GLuint GetTextureId();
+
 private:
     unsigned int cubeVAO = 0;
     unsigned int cubeVBO = 0;
+    GLuint textureId;
 };
 

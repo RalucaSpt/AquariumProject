@@ -26,26 +26,24 @@ bool rotateLight = true;
 
 Camera* pCamera = nullptr;
 
-unsigned int CreateTexture(const std::string& strTexturePath)
+unsigned int CreateTexture(const std::string& strTexturePath, float alpha)
 {
     unsigned int textureId = -1;
 
     // load image, create texture and generate mipmaps
     int width, height, nrChannels;
     stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
-    unsigned char* data = stbi_load(strTexturePath.c_str(), &width, &height, &nrChannels, 0);
+    unsigned char* data = stbi_load(strTexturePath.c_str(), &width, &height, &nrChannels, STBI_rgb_alpha); // Ensure loading with alpha channel
     if (data) {
-        GLenum format;
-        if (nrChannels == 1)
-            format = GL_RED;
-        else if (nrChannels == 3)
-            format = GL_RGB;
-        else if (nrChannels == 4)
-            format = GL_RGBA;
-
         glGenTextures(1, &textureId);
         glBindTexture(GL_TEXTURE_2D, textureId);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); // Use GL_RGBA for alpha channel
+
+        // Adjust transparency by modifying alpha channel
+        for (int i = 0; i < width * height * 4; i += 4) {
+            data[i + 3] = static_cast<unsigned char>(alpha * 255); // Update alpha channel
+        }
+
         glGenerateMipmap(GL_TEXTURE_2D);
 
         // set the texture wrapping parameters
@@ -62,6 +60,7 @@ unsigned int CreateTexture(const std::string& strTexturePath)
 
     return textureId;
 }
+
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -119,7 +118,8 @@ int main(int argc, char** argv)
 
     // load textures
     // -------------
-    unsigned int floorTexture = CreateTexture(strExePath + "\\Glass.png");
+    unsigned int floorTexture = CreateTexture(strExePath + "\\Glass.png",
+        		0.05f);
 
     // configure depth map FBO
     // -----------------------
@@ -174,8 +174,16 @@ int main(int argc, char** argv)
 
         // render
         // ------
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 0.0f); // Set clear color with alpha 0
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        // Enable blending
+        glEnable(GL_BLEND);
+        // Set blend function
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 
         // 1. render depth of scene to texture (from light's perspective)
         glm::mat4 lightProjection, lightView;
@@ -214,6 +222,12 @@ int main(int argc, char** argv)
         // reset viewport
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // Bind your texture
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, floorTexture); // Assuming floorTexture is the ID of your texture
+
+
 
         // 2. render scene as normal using the generated depth/shadow map 
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);

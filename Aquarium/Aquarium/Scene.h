@@ -28,6 +28,7 @@ public:
     void renderCubes(Shader& shader, CubeObj& cube)
     {
         glm::mat4 model;
+    
 
         // Cube 0
         setModelTransform(model, glm::vec3(0.0f, 1.75f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 0.0f, glm::vec3(0.75f));
