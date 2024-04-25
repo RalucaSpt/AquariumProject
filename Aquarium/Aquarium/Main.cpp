@@ -301,9 +301,24 @@ int main(int argc, char** argv)
         glDisable(GL_CULL_FACE);
         scene.renderScene(shadowMappingShader, fishObjModel);
 
-        /*glm::mat4 piratModel = glm::scale(glm::mat4(1.0), glm::vec3(1.f));
-        shadowMappingShader.SetMat4("model", piratModel);
-        piratObjModel.Draw(shadowMappingShader);*/
+        
+
+
+        glEnable(GL_CULL_FACE);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, fishTexture);
+
+        glm::mat4 fishModel = glm::mat4(1.0f); // Identity matrix
+        //rotate around z-axis
+        fishModel = glm::rotate(fishModel, glm::radians(
+			90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis
+        fishModel = glm::rotate(fishModel, glm::radians(
+            90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
+        fishModel = glm::scale(fishModel, glm::vec3(
+        	0.1f, 0.1f, 0.1f
+        )); // Scale uniformly
+        shadowMappingShader.SetMat4("model", fishModel);
+        fishObjModel.Draw(shadowMappingShader);
 
         
 

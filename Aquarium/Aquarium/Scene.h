@@ -69,9 +69,9 @@ public:
 
         renderCubes(const_cast<Shader&>(shader), cube);
 
-        glm::mat4 fishModel = glm::scale(glm::mat4(1.0), glm::vec3(0.1f));
+        /*glm::mat4 fishModel = glm::scale(glm::mat4(1.0), glm::vec3(0.1f));
         shader.SetMat4("model", fishModel);
-        fishObjModel.Draw(shader);
+        fishObjModel.Draw(shader);*/
 
 
     }
