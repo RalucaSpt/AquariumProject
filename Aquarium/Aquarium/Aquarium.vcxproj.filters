@@ -77,16 +77,16 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ShadowMapping.fs">
-      <Filter>Source Files</Filter>
+      <Filter>Resource Files</Filter>
     </None>
     <None Include="ShadowMapping.vs">
-      <Filter>Source Files</Filter>
+      <Filter>Resource Files</Filter>
     </None>
     <None Include="ShadowMappingDepth.fs">
-      <Filter>Source Files</Filter>
+      <Filter>Resource Files</Filter>
     </None>
     <None Include="ShadowMappingDepth.vs">
-      <Filter>Source Files</Filter>
+      <Filter>Resource Files</Filter>
     </None>
     <None Include="packages.config" />
   </ItemGroup>

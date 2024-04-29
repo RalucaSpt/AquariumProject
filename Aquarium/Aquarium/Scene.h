@@ -11,21 +11,9 @@ class Shader;
 
 class Scene
 {
-    // renders the 3D scene
 	// renders the 3D scene
 // --------------------
 public:
-    void setModelTransform(glm::mat4& model,
-        const glm::vec3& translateVector,
-        const glm::vec3& rotateAxis,
-        float rotateAngle,
-        const glm::vec3& scaleVec)
-    {
-        model = glm::mat4();
-        model = glm::translate(model, translateVector);
-        model = glm::rotate(model, glm::radians(rotateAngle), rotateAxis);
-        model = glm::scale(model, scaleVec);
-    };
 	void setModelTransform(glm::mat4& model,
 		const glm::vec3& translateVector,
 		const glm::vec3& rotateAxis,
@@ -38,33 +26,17 @@ public:
 		model = glm::scale(model, scaleVec);
 	};
 
-    void renderCubes(Shader& shader, CubeObj& cube)
-    {
-        glm::mat4 model;
-    
 	void renderCubes(Shader& shader, CubeObj& cube)
 	{
 		glm::mat4 model;
 
-        // Cube 0
-        setModelTransform(model, glm::vec3(0.0f, 1.75f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 0.0f, glm::vec3(0.75f));
-        shader.SetMat4("model", model);
-        cube.renderCube();
 
-        // Cube 1
-        setModelTransform(model, glm::vec3(0.0f, 1.75f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 0.0f, glm::vec3(0.75f));
-        shader.SetMat4("model", model);
-        cube.renderCube();
 		// Cube 0
 		setModelTransform(model, glm::vec3(0.0f, 1.75f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 0.0f, glm::vec3(2.0f, 1.0f, 1.0f));
 		shader.SetMat4("model", model);
 		cube.renderCube();
 	}
 
-        // Cube 2
-        setModelTransform(model, glm::vec3(2.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 45.0f, glm::vec3(0.7f));
-        shader.SetMat4("model", model);
-        cube.renderCube();
 	void renderScene(const Shader& shader)
 	{
 		// floor
