@@ -165,9 +165,8 @@ int main(int argc, char** argv)
     unsigned int floorTexture = CreateTexture(strExePath + "\\Glass.png",
         		0.05f);
 
-    unsigned int fishTexture = CreateTexture(strExePath + "\\fish.jpg",
-		1.0f);
-
+    unsigned int fishTexture = CreateTexture(currentPath + "\\Models\\Fish\\fish.jpg", 1.0f);
+    
 
     // configure depth map FBO
     // -----------------------
