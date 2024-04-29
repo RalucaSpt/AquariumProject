@@ -168,6 +168,7 @@ int main(int argc, char** argv)
     unsigned int fishTexture = CreateTexture(strExePath + "\\fish.jpg",
 		1.0f);
 
+
     // configure depth map FBO
     // -----------------------
     const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;

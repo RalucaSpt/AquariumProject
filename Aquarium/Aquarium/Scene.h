@@ -46,7 +46,7 @@ public:
 		floor.renderFloor();
 		CubeObj cube;
 
-<<<<<<< Updated upstream
+
         // Cube 3
         setModelTransform(model, glm::vec3(-3.0f, 0.5f, 2.0f), glm::vec3(1.0f, 1.0f, 1.0f), 30.0f, glm::vec3(0.6f));
         shader.SetMat4("model", model);
@@ -58,8 +58,7 @@ public:
         cube.renderCube();
     }
 
-    void renderScene(Shader& shader, Model& fishObjModel
-    )
+    void renderScene(Shader& shader, Model& fishObjModel)
     {
         // floor
         glm::mat4 model;
@@ -76,9 +75,7 @@ public:
 
 
     }
-=======
-		renderCubes(const_cast<Shader&>(shader), cube);
-	}
->>>>>>> Stashed changes
+		//renderCubes(const_cast<Shader&>(shader), cube);
+	
 };
 
