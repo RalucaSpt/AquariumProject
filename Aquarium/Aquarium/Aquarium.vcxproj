@@ -173,6 +173,8 @@
     <ClInclude Include="Vertex.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Border.fs" />
+    <None Include="Border.vs" />
     <None Include="packages.config" />
     <None Include="ShadowMapping.fs" />
     <None Include="ShadowMapping.vs" />

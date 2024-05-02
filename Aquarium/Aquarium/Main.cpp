@@ -1,7 +1,6 @@
 ﻿#include "Texture.h"
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <GL/glew.h>
 #define GLM_FORCE_CTOR_INIT 
 #include <GLM.hpp>a
@@ -21,7 +20,6 @@
 #include "Model.h"
 #include <Windows.h>
 #include <locale>
-#include <math.h> 
 
 #pragma comment (lib, "glfw3dll.lib")
 #pragma comment (lib, "glew32.lib")
@@ -32,6 +30,8 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 bool rotateLight = true;
+bool isTransparent = false;
+
 
 GLuint ProjMatrixLocation, ViewMatrixLocation, WorldMatrixLocation;
 Camera* pCamera = nullptr;
@@ -41,39 +41,67 @@ void Cleanup()
     delete pCamera;
 }
 
-unsigned int CreateTexture(const std::string& strTexturePath, float alpha)
-{
-    unsigned int textureId = -1;
 
-    // load image, create texture and generate mipmaps
-    int width, height, nrChannels;
-    stbi_set_flip_vertically_on_load(false); // tell stb_image.h to flip loaded texture's on the y-axis.
-    unsigned char* data = stbi_load(strTexturePath.c_str(), &width, &height, &nrChannels, STBI_rgb_alpha); // Ensure loading with alpha channel
-    if (data) {
-        glGenTextures(1, &textureId);
-        glBindTexture(GL_TEXTURE_2D, textureId);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); // Use GL_RGBA for alpha channel
+// Define ROI parameters
+glm::vec3 fishPosition;
+float roiRadius = 5.0f; // Adjust as needed
 
-        // Adjust transparency by modifying alpha channel
-        for (int i = 0; i < width * height * 4; i += 4) {
-            data[i + 3] = static_cast<unsigned char>(alpha * 255); // Update alpha channel
-        }
+// Function to draw colored border around fish object
+void DrawColoredBorder(const glm::vec3& fishPosition, Model& fishObjModel, const glm::mat4& fishModel, bool transparent) {
+    // Render colored border around fish object
+    // Example: Render wireframe or outline mesh around the fish object with a specific color
 
-        glGenerateMipmap(GL_TEXTURE_2D);
+    // Set the color for the border (e.g., red)
+    const glm::vec3 borderColor = glm::vec3(1.0f, 0.0f, 0.0f); // Red color
 
-        // set the texture wrapping parameters
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        // set texture filtering parameters
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // Calculate the model matrix for the border (use the same transformations as the fish object)
+    glm::mat4 borderModel = fishModel;
+
+    // Use the border shader
+    Shader borderShader("border.vs", "border.fs");
+    borderShader.Use();
+
+    // Set the model, view, and projection matrices in the border shader
+    borderShader.SetMat4("model", borderModel);
+    borderShader.SetMat4("view", pCamera->GetViewMatrix());
+    borderShader.SetMat4("projection", pCamera->GetProjectionMatrix());
+
+    // Set the color of the border in the shader
+    borderShader.SetVec3("borderColor", borderColor);
+
+    // Set the transparency
+    if (transparent) {
+        // Set alpha to 0 for full transparency
+        borderShader.SetVec4("borderColor", glm::vec4(borderColor, 0.0f));
     }
-    else {
-        std::cout << "Failed to load texture: " << strTexturePath << std::endl;
-    }
-    stbi_image_free(data);
 
-    return textureId;
+    // Set the polygon mode to draw only the border lines
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    // Draw the border around the fish object
+    fishObjModel.DrawBorder(borderShader);
+
+    // Restore the polygon mode to fill mode
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+
+
+// Function to switch camera perspective to that of the fish
+void SwitchToFishPerspective(Camera* camera, const glm::vec3& fishPosition) {
+    // Set camera position and orientation to match that of the fish
+    camera->SetPosition(fishPosition);
+    // Additional adjustments to camera orientation if needed
+}
+
+// Check if camera is within ROI
+bool IsCameraWithinROI(Camera* camera, const glm::vec3& fishPosition, float roiRadius) {
+    // Calculate distance between camera position and fish position
+    glm::vec3 cameraPosition = camera->GetPosition();
+    float distance = glm::distance(cameraPosition, fishPosition);
+
+    // Check if distance is within ROI radius
+    return distance < roiRadius;
 }
 
 
@@ -86,10 +114,28 @@ void processInput(GLFWwindow* window);
 double deltaTime = 0.0f;	// time between current frame and last frame
 double lastFrame = 0.0f;
 
+int keyPress = 0;
+
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_A && action == GLFW_PRESS) {
 
+    }
+    // Check if F key is pressed to switch camera perspective
+    if (key == GLFW_KEY_F && action == GLFW_PRESS) {
+        // Check if camera is within ROI of the fish
+        if (IsCameraWithinROI(pCamera, fishPosition, roiRadius)) {
+            // Switch camera perspective to that of the fish
+            if (keyPress %2 == 0) {
+                SwitchToFishPerspective(pCamera, fishPosition);
+            }
+			else {
+				// Return to initial camera position
+				pCamera->SetPosition(glm::vec3(0.0, 1.0, 3.0));
+			}
+            isTransparent = !isTransparent;
+            keyPress++;
+        }
     }
 }
 
@@ -162,11 +208,13 @@ int main(int argc, char** argv)
 
     // load textures
     // -------------
-    unsigned int floorTexture = CreateTexture(strExePath + "\\Glass.png",
-        		0.05f);
+    Texture txtr;
 
-    unsigned int fishTexture = CreateTexture(currentPath + "\\Models\\Fish\\fish.jpg", 1.0f);
-    
+    unsigned int floorTexture = txtr.CreateTexture(strExePath + "\\Glass.png",
+        		0.05f);
+    Texture txtr2(strExePath + "\\Fish.jpg", 1.0f);
+    //unsigned int fishTexture = txtr.CreateTexture(currentPath + "\\Models\\Fish\\fish.jpg", 1.0f);
+    unsigned int fishTexture = txtr2.GetTextureID();
 
     // configure depth map FBO
     // -----------------------
@@ -205,6 +253,7 @@ int main(int argc, char** argv)
 
     glEnable(GL_CULL_FACE);
 
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -230,6 +279,7 @@ int main(int argc, char** argv)
         glEnable(GL_BLEND);
         // Set blend function
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 
 
         // 1. render depth of scene to texture (from light's perspective)
@@ -309,6 +359,7 @@ int main(int argc, char** argv)
         glBindTexture(GL_TEXTURE_2D, fishTexture);
 
         glm::mat4 fishModel = glm::mat4(1.0f); // Identity matrix
+        fishModel = glm::translate(fishModel, fishPosition);
         //rotate around z-axis
         fishModel = glm::rotate(fishModel, glm::radians(
 			90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis
@@ -318,10 +369,26 @@ int main(int argc, char** argv)
         	0.1f, 0.1f, 0.1f
         )); // Scale uniformly
         shadowMappingShader.SetMat4("model", fishModel);
-        fishObjModel.Draw(shadowMappingShader);
+
+        //if the isTransparent variable is true, the fish will be transparent
+        if (isTransparent) {
+			shadowMappingShader.SetVec4("objectColor", glm::vec4(1.0f, 1.0f, 1.0f, 0.0f));
+            //fishObjModel.Draw(shadowMappingShader);
+
+		}
+		else {
+			shadowMappingShader.SetVec4("objectColor", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+            fishObjModel.Draw(shadowMappingShader);
+            if (IsCameraWithinROI(pCamera, fishPosition, roiRadius)) {
+                // Draw colored border around fish object
+                DrawColoredBorder(fishPosition, fishObjModel, fishModel, isTransparent);
+            }
+		}
+
+
 
         
-
+        // Check if camera is within ROI of the fish
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);
         glfwPollEvents();

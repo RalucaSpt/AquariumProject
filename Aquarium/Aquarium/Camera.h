@@ -157,6 +157,11 @@ class Camera
                 FoVy = 90.0f;
         }
 
+        void SetPosition(const glm::vec3 vec)
+        {
+        	position = vec;
+        }
+
     private:
         void ProcessMouseMovement(float xOffset, float yOffset, bool constrainPitch = true)
         {

@@ -31,6 +31,10 @@ public:
     }
 
     unsigned int GetID() const { return ID; }
+    void SetVec4(const char* str, glm::vec4 vec)
+    {
+    	glUniform4fv(glGetUniformLocation(ID, str), 1, glm::value_ptr(vec));
+    }
 
     // MVP
     unsigned int loc_model_matrix;
