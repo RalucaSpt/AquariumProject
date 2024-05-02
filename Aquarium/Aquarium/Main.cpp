@@ -36,6 +36,8 @@ bool isTransparent = false;
 GLuint ProjMatrixLocation, ViewMatrixLocation, WorldMatrixLocation;
 Camera* pCamera = nullptr;
 
+
+
 void Cleanup()
 {
     delete pCamera;
@@ -113,7 +115,8 @@ void processInput(GLFWwindow* window);
 // timing
 double deltaTime = 0.0f;	// time between current frame and last frame
 double lastFrame = 0.0f;
-
+bool isInFishPerspective = false;
+bool isFishVisible = true;
 int keyPress = 0;
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -134,6 +137,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 				pCamera->SetPosition(glm::vec3(0.0, 1.0, 3.0));
 			}
             isTransparent = !isTransparent;
+            keyPress++;
+        }
+        else if (keyPress % 2 == 1) {
+            // Return to initial camera position
+            pCamera->SetPosition(glm::vec3(0.0, 1.0, 3.0));
             keyPress++;
         }
     }
@@ -196,6 +204,7 @@ int main(int argc, char** argv)
     // -------------------------
     Shader shadowMappingShader("ShadowMapping.vs", "ShadowMapping.fs");
     Shader shadowMappingDepthShader("ShadowMappingDepth.vs", "ShadowMappingDepth.fs");
+    Shader transparentShader("TransparentObjShader.vs", "TransparentObjShader.fs");
 
     std::string objFileName = (currentPath + "\\Models\\CylinderProject.obj");
     Model objModel(objFileName, false);
@@ -210,8 +219,15 @@ int main(int argc, char** argv)
     // -------------
     Texture txtr;
 
-    unsigned int floorTexture = txtr.CreateTexture(strExePath + "\\Glass.png",
+    std::vector<unsigned int> texturePaths;
+    unsigned int glassTexture = txtr.CreateTexture(strExePath + "\\Glass.png",
         		0.05f);
+    unsigned int floorTexture = txtr.CreateTexture(strExePath + "\\stones.jpg", 1.0f);
+    texturePaths.push_back(glassTexture);
+    texturePaths.push_back(floorTexture);
+
+
+
     Texture txtr2(strExePath + "\\Fish.jpg", 1.0f);
     //unsigned int fishTexture = txtr.CreateTexture(currentPath + "\\Models\\Fish\\fish.jpg", 1.0f);
     unsigned int fishTexture = txtr2.GetTextureID();
@@ -251,13 +267,14 @@ int main(int argc, char** argv)
     // -------------
     glm::vec3 lightPos(-2.0f, 4.0f, -1.0f);
 
-    glEnable(GL_CULL_FACE);
+    //glEnable(GL_CULL_FACE);
 
 
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
     {
+
         // per-frame time logic
         // --------------------
         float currentFrame = (float)glfwGetTime();
@@ -308,19 +325,16 @@ int main(int argc, char** argv)
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
         glActiveTexture(GL_TEXTURE0);
+
+        // Draw the floor
+
         glBindTexture(GL_TEXTURE_2D, floorTexture);
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
         Scene scene;
-        scene.renderScene(shadowMappingDepthShader,fishObjModel);
+        //scene.renderScene(shadowMappingDepthShader,fishObjModel);
         glCullFace(GL_BACK);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        /*glm::mat4 piratModel = glm::scale(glm::mat4(1.0), glm::vec3(1.f));
-        shadowMappingDepthShader.setMat4("model", piratModel);
-        piratObjModel.Draw(shadowMappingDepthShader);*/
-
-
 
         // reset viewport
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
@@ -329,8 +343,6 @@ int main(int argc, char** argv)
         // Bind your texture
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, floorTexture); // Assuming floorTexture is the ID of your texture
-
-
 
         // 2. render scene as normal using the generated depth/shadow map 
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
@@ -349,9 +361,9 @@ int main(int argc, char** argv)
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
         glDisable(GL_CULL_FACE);
-        scene.renderScene(shadowMappingShader, fishObjModel);
+        scene.renderScene(shadowMappingShader, texturePaths);
 
-        
+
 
 
         glEnable(GL_CULL_FACE);
@@ -362,31 +374,40 @@ int main(int argc, char** argv)
         fishModel = glm::translate(fishModel, fishPosition);
         //rotate around z-axis
         fishModel = glm::rotate(fishModel, glm::radians(
-			90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis
+            90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis
         fishModel = glm::rotate(fishModel, glm::radians(
             90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
         fishModel = glm::scale(fishModel, glm::vec3(
-        	0.1f, 0.1f, 0.1f
+            0.1f, 0.1f, 0.1f
         )); // Scale uniformly
         shadowMappingShader.SetMat4("model", fishModel);
 
         //if the isTransparent variable is true, the fish will be transparent
         if (isTransparent) {
-			shadowMappingShader.SetVec4("objectColor", glm::vec4(1.0f, 1.0f, 1.0f, 0.0f));
+            shadowMappingShader.SetVec4("objectColor", glm::vec4(1.0f, 1.0f, 1.0f, 0.0f));
             //fishObjModel.Draw(shadowMappingShader);
 
-		}
-		else {
-			shadowMappingShader.SetVec4("objectColor", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+        }
+        else {
+            shadowMappingShader.SetVec4("objectColor", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
             fishObjModel.Draw(shadowMappingShader);
             if (IsCameraWithinROI(pCamera, fishPosition, roiRadius)) {
                 // Draw colored border around fish object
                 DrawColoredBorder(fishPosition, fishObjModel, fishModel, isTransparent);
             }
-		}
+        }
 
 
+        
 
+        transparentShader.Use();
+        transparentShader.SetMat4("projection", projection);
+        transparentShader.SetMat4("view", view);
+        transparentShader.SetVec3("viewPos", pCamera->GetPosition());
+        transparentShader.SetVec3("lightPos", lightPos);
+        transparentShader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
+        CubeObj cube;
+    	scene.renderCubes(const_cast<Shader&>(transparentShader), cube, texturePaths[0]);
         
         // Check if camera is within ROI of the fish
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)

@@ -95,5 +95,11 @@
     <None Include="Border.fs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="TransparentObjShader.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="TransparentObjShader.vs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

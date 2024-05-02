@@ -40,7 +40,6 @@
 
 #pragma once
 #include <vector>
-#include <iostream>
 #include "Mesh.h"
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>

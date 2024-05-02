@@ -7,8 +7,9 @@ class CubeObj
 	// renderCube() renders a 1x1 3D cube in NDC.
 	// -------------------------------------------------
 public:
-    void renderCube()
+    void renderCube(unsigned int texture)
     {
+        glBindTexture(GL_TEXTURE_2D, texture);
         // initialize (if necessary)
         if (cubeVAO == 0)
         {

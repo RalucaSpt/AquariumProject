@@ -5,9 +5,11 @@
 class Floor
 {
     public:
-    void renderFloor()
+    void renderFloor(unsigned int texture)
     {
         unsigned int planeVBO;
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
 
         if (planeVAO == 0) {
             // set up vertex data (and buffer(s)) and configure vertex attributes
