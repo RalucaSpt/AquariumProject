@@ -1,4 +1,4 @@
-#version 330 core
+#version 330 core 
 out vec4 FragColor;
 
 in VS_OUT {
@@ -11,10 +11,13 @@ in VS_OUT {
 uniform sampler2D diffuseTexture;
 uniform sampler2D shadowMap;
 
+uniform int textureSelector;
+uniform sampler2D fish1;
+uniform sampler2D fish2;
+
+
 uniform vec3 lightPos;
 uniform vec3 viewPos;
-
-uniform float transparency;
 
 //float bias = 0.001;
 
@@ -57,8 +60,17 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 }
 
 void main()
-{           
-    vec4 texColor = texture(diffuseTexture, fs_in.TexCoords);
+{         
+    vec4 texColor;
+    if (textureSelector == 2) {
+        texColor = texture(fish1, fs_in.TexCoords);
+    } else if (textureSelector == 3) {
+        texColor = texture(fish2, fs_in.TexCoords);
+    } else {
+        texColor = texture(diffuseTexture, fs_in.TexCoords);
+    }
+
+    //vec4 texColor = texture(diffuseTexture, fs_in.TexCoords);
     vec3 color = texColor.rgb;
     vec3 normal = normalize(fs_in.Normal);
     vec3 lightColor = vec3(0.3);
@@ -81,7 +93,7 @@ void main()
     vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;    
     
     // Apply transparency
-    FragColor = vec4(lighting,transparency);
+    FragColor = vec4(lighting,1.0f);
 
    // FragColor = vec4(lighting,0.2f);
 }
