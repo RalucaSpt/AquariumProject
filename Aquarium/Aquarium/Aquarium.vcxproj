@@ -71,9 +71,9 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <ExternalIncludePath>..\..\..\external\glfw-3.4.bin.WIN64\include\GLFW;..\..\..\external\glew-2.2.0\include;..\..\..\external\stb;..\..\..\external\freeglut;..\..\..\external\glm;$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>..\..\..\external\stb;..\..\..\external\glm;..\..\..\external\glfw-3.4.bin.WIN64\include\GLFW;..\..\..\external\glew-2.2.0\include</ExternalIncludePath>
     <LibraryPath>..\..\..\external\freeglut\lib\x64;..\..\..\external\glfw-3.4.bin.WIN64\lib-vc2022;..\..\..\external\glew-2.2.0\lib\Release\x64;$(LibraryPath)</LibraryPath>
-    <IncludePath>..\..\..\external\stb;..\..\..\external\glm;..\..\..\external\glfw-3.4.bin.WIN64\include\GLFW;..\..\..\external\glew-2.2.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>..\..\..\..\External\glm;..\..\..\..\External\freeglut;..\..\..\..\External\Stb;..\..\..\..\External\glfw_x64\include\GLFW;..\..\..\..\External\glew-2.1.0\include;C:\Users\anton\OneDrive\Desktop\Grafica 3D\AquariumProject-main\AquariumProject.git\Aquarium\packages\Assimp.3.0.0\build\native\include\assimp;$(IncludePath)</IncludePath>
@@ -90,8 +90,9 @@
     <LibraryPath>..\..\..\external\freeglut\lib\x64;..\..\..\external\glfw-3.4.bin.WIN64\lib-vc2022;..\..\..\external\glew-2.2.0\lib\Release\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>..\..\..\external\stb;..\..\..\external\glm;..\..\..\external\glfw-3.4.bin.WIN64\include\GLFW;..\..\..\external\glew-2.2.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>..\..\..\external\freeglut\lib\x64;..\..\..\external\glfw-3.4.bin.WIN64\lib-vc2022;..\..\..\external\glew-2.2.0\lib\Release\x64;$(LibraryPath)</LibraryPath>
+    <ExternalIncludePath>..\..\..\external\stb;..\..\..\external\glm;..\..\..\external\glfw-3.4.bin.WIN64\include\GLFW;..\..\..\external\glew-2.2.0\include</ExternalIncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
