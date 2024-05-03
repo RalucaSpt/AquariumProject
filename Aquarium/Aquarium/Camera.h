@@ -162,6 +162,17 @@ class Camera
         	position = vec;
         }
 
+        void SetYaw(float yaw)
+        {
+			this->yaw = yaw;
+			UpdateCameraVectors();
+        }
+
+        void SetPitch(float pitch)
+        {
+        	this->pitch = pitch;
+        }
+
     private:
         void ProcessMouseMovement(float xOffset, float yOffset, bool constrainPitch = true)
         {

@@ -1,5 +1,4 @@
 ﻿#include "Texture.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <GL/glew.h>
@@ -8,10 +7,9 @@
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
 #include <glfw3.h>
-#include "Camera.h"
 #include <iostream>
 #include <fstream>
-#include <sstream>
+//#include <sstream>
 #define STB_IMAGE_IMPLEMENTATION
 
 #include <codecvt>
@@ -19,6 +17,8 @@
 #include "Scene.h"
 #include "Shader.h"
 #include "Model.h"
+#include "Camera.h"
+
 #include <Windows.h>
 #include <locale>
 #include <math.h> 
@@ -27,7 +27,7 @@
 #pragma comment (lib, "glew32.lib")
 #pragma comment (lib, "OpenGL32.lib")
 
-// settings
+
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
@@ -61,6 +61,36 @@ unsigned int CreateTexture(const std::string& strTexturePath, float alpha)
 
         glGenerateMipmap(GL_TEXTURE_2D);
 
+    // Restore the polygon mode to fill mode
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+// Function to switch camera perspective to that of the fish
+void SwitchToFishPerspective(Camera* camera, const glm::vec3& fishPosition) {
+    // Set camera position to be behind and above the fish
+    glm::vec3 offset = glm::vec3(0.0f, 1.5f, -3.0f);
+    camera->SetPosition(fishPosition + offset);
+
+    // Calculate direction vector from camera position to fish position
+    glm::vec3 direction = glm::normalize(fishPosition - camera->GetPosition());
+
+    // Calculate yaw and pitch angles from direction vector
+    float yaw = glm::degrees(atan2(direction.x, direction.z))+90;
+    float pitch = glm::degrees(asin(direction.y));
+
+    // Set camera orientation to look at the fish
+    camera->SetYaw(yaw);
+    camera->SetPitch(pitch);
+
+    // Additional adjustments to camera orientation if needed
+}
+
+
+// Check if camera is within ROI
+bool IsCameraWithinROI(Camera* camera, const glm::vec3& fishPosition, float roiRadius) {
+    // Calculate distance between camera position and fish position
+    glm::vec3 cameraPosition = camera->GetPosition();
+    float distance = glm::distance(cameraPosition, fishPosition);
         // set the texture wrapping parameters
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -86,10 +116,36 @@ void processInput(GLFWwindow* window);
 double deltaTime = 0.0f;	// time between current frame and last frame
 double lastFrame = 0.0f;
 
+
+
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_A && action == GLFW_PRESS) {
 
+    }
+    // Check if F key is pressed to switch camera perspective
+    if (key == GLFW_KEY_F && action == GLFW_PRESS) {
+        // Check if camera is within ROI of the fish
+        if (IsCameraWithinROI(pCamera, fishPosition, roiRadius)) {
+            // Switch camera perspective to that of the fish
+            if (keyPress %2 == 0) {
+                SwitchToFishPerspective(pCamera, fishPosition);
+                isInFishPerspective = true;
+            }
+			else {
+				// Return to initial camera position
+				pCamera->SetPosition(glm::vec3(0.0, 1.0, 3.0));
+                isInFishPerspective = false;
+			}
+            isTransparent = !isTransparent;
+            keyPress++;
+        }
+        else if (keyPress % 2 == 1) {
+            // Return to initial camera position
+            pCamera->SetPosition(glm::vec3(0.0, 1.0, 3.0));
+            keyPress++;
+            isInFishPerspective = false;
+        }
     }
 }
 
@@ -116,14 +172,11 @@ int main(int argc, char** argv)
         return -1;
     }
 
-
-
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetKeyCallback(window, key_callback);
-
 
     // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -167,6 +220,10 @@ int main(int argc, char** argv)
     // -------------
     unsigned int floorTexture = CreateTexture(strExePath + "\\Glass.png",
         		0.05f);
+    unsigned int floorTexture = txtr.CreateTexture(strExePath + "\\sand.jpg", 1.0f);
+    texturePaths.push_back(glassTexture);
+    texturePaths.push_back(floorTexture);
+
 
     unsigned int fishTexture = CreateTexture(currentPath + "\\Models\\Fish\\fish.jpg", 1.0f);
     unsigned int fish2Texture = CreateTexture(strExePath + "\\Models\\Fish2\\fish2.png", 1.0f);  
@@ -324,7 +381,23 @@ int main(int argc, char** argv)
         	0.1f, 0.1f, 0.1f
         )); // Scale uniformly
         shadowMappingShader.SetMat4("model", fishModel);
-        fishObjModel.Draw(shadowMappingShader);
+
+        //if the isTransparent variable is true, the fish will be transparent
+        if (isTransparent) {
+            shadowMappingShader.SetVec4("objectColor", glm::vec4(1.0f, 1.0f, 1.0f, 0.0f));
+            fishObjModel.Draw(shadowMappingShader);
+            //move the fish along with the camera
+
+        }
+        else {
+            shadowMappingShader.SetVec4("objectColor", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+            fishObjModel.Draw(shadowMappingShader);
+            if (IsCameraWithinROI(pCamera, fishPosition, roiRadius)) {
+                // Draw colored border around fish object
+                DrawColoredBorder(fishPosition, fishObjModel, fishModel, isTransparent);
+            }
+        }
+
 
         glActiveTexture(GL_TEXTURE3); // Folosește o altă unitate de textură
         glBindTexture(GL_TEXTURE_2D, fish2Texture);
@@ -339,8 +412,23 @@ int main(int argc, char** argv)
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, fish2Texture);
         fish2ObjModel.Draw(shadowMappingShader);
+        glDisable(GL_CULL_FACE);
 
+        transparentShader.Use();
+        transparentShader.SetMat4("projection", projection);
+        transparentShader.SetMat4("view", view);
+        transparentShader.SetVec3("viewPos", pCamera->GetPosition());
+        transparentShader.SetVec3("lightPos", lightPos);
+        transparentShader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
+        CubeObj cube;
 
+        //make the cube object visible from all angles
+
+        
+
+    	scene.renderCubes(const_cast<Shader&>(transparentShader), cube, texturePaths[0]);
+        
+        // Check if camera is within ROI of the fish
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -360,7 +448,12 @@ void processInput(GLFWwindow* window)
         glfwSetWindowShouldClose(window, true);
 
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-        pCamera->ProcessKeyboard(FORWARD, (float)deltaTime);
+    {
+	    pCamera->ProcessKeyboard(FORWARD, (float)deltaTime);
+        if (isInFishPerspective) {
+			fishPosition += glm::vec3(0.0f, 0.0f, 0.005f);
+		}
+    }
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
         pCamera->ProcessKeyboard(BACKWARD, (float)deltaTime);
     if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
