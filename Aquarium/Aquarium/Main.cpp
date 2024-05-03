@@ -11,6 +11,7 @@
 #include <fstream>
 //#include <sstream>
 #define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 #include <codecvt>
 
@@ -262,6 +263,9 @@ int main(int argc, char** argv)
     std::string fish2ObjFileName = (currentPath + "\\Models\\Fish2\\fish2.obj");
     Model fish2ObjModel(fish2ObjFileName, false);
 
+    std::string coralBeautyObjFileName = currentPath + "\\Models\\CoralBeauty\\coralBeauty.obj";
+    Model coralBeautyModel(coralBeautyObjFileName, false);
+
     // load textures
     // -------------
     Texture txtr;
@@ -276,7 +280,7 @@ int main(int argc, char** argv)
 
     unsigned int fishTexture = CreateTexture(currentPath + "\\Models\\Fish\\fish.jpg", 1.0f);
     unsigned int fish2Texture = CreateTexture(strExePath + "\\Models\\Fish2\\fish2.png", 1.0f);  
-
+    unsigned int coralBeautyTexture = CreateTexture(currentPath + "\\Models\\CoralBeauty\\coralBeauty.jpg", 1.0f);
 
     // configure depth map FBO
     // -----------------------
@@ -461,6 +465,21 @@ int main(int argc, char** argv)
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, fish2Texture);
         fish2ObjModel.Draw(shadowMappingShader);
+
+        // Setează unitatea de textură corespunzătoare pentru textura Coral Beauty
+        glActiveTexture(GL_TEXTURE4); // Folosește o unitate de textură liberă, de exemplu GL_TEXTURE4
+        glBindTexture(GL_TEXTURE_2D, coralBeautyTexture);
+        shadowMappingShader.SetInt("coralBeauty", 4); // Asigură-te că shaderul are o uniformă pentru acesta
+
+        // Configurare model matrix pentru Coral Beauty
+        glm::mat4 coralBeautyModelMatrix = glm::mat4(1.0f);
+        coralBeautyModelMatrix = glm::translate(coralBeautyModelMatrix, glm::vec3(2.0f, 0.0f, -1.0f)); // Poziționează peștele
+        coralBeautyModelMatrix = glm::scale(coralBeautyModelMatrix, glm::vec3(0.1f, 0.1f, 0.1f)); // Scalați-l dacă este necesar
+
+        // Desenează modelul Coral Beauty
+        shadowMappingShader.SetMat4("model", coralBeautyModelMatrix);
+        coralBeautyModel.Draw(shadowMappingShader);
+
         glDisable(GL_CULL_FACE);
 
         transparentShader.Use();

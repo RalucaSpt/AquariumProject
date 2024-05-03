@@ -14,6 +14,7 @@ uniform sampler2D shadowMap;
 uniform int textureSelector;
 uniform sampler2D fish1;
 uniform sampler2D fish2;
+uniform sampler2D coralBeauty; 
 
 
 uniform vec3 lightPos;

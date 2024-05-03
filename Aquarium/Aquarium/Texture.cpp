@@ -1,8 +1,8 @@
 #include "Texture.h"
-#ifndef STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_IMPLEMENTATION
+//#ifndef STB_IMAGE_IMPLEMENTATION
+//#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#endif
+//#endif
 unsigned Texture::CreateTexture(const std::string& strTexturePath, float alpha)
 {
 	unsigned int textureId = -1;
