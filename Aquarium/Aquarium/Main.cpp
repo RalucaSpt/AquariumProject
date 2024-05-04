@@ -474,49 +474,41 @@ int main(int argc, char** argv)
         )); // Scale uniformly
         shadowMappingShader.SetMat4("model", fishModel);
 
-        if (isTransparent) {
-            shadowMappingShader.SetVec4("objectColor", glm::vec4(1.0f, 1.0f, 1.0f, 0.0f));
-            fishObjModel.Draw(shadowMappingShader);
-            //move the fish along with the camera
+        //if (isTransparent) {
+        //    shadowMappingShader.SetVec4("objectColor", glm::vec4(1.0f, 1.0f, 1.0f, 0.0f));
+        //    fishObjModel.Draw(shadowMappingShader);
+        //    //move the fish along with the camera
 
-        }
-        else {
-            shadowMappingShader.SetVec4("objectColor", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+        //}
+        //else {
+            //shadowMappingShader.SetVec4("objectColor", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
             //make fish orientation math auxiliary model
 
-            if (isInFishPerspective)
-            {
-                float centerX = SCR_WIDTH / 2.0f;
-                float centerY = SCR_HEIGHT / 2.0f;
+        if (isInFishPerspective)
+        {
+            // Sensitivity factor for rotation
+            float sensitivity = 0.1f;
 
-                // Calculate offset from the center of the screen
-                float offsetX = mouseX - centerX;
-                float offsetY = mouseY - centerY;
+            // Adjust mouse position to account for camera offset
+            float adjustedMouseX = mouseX - SCR_WIDTH / 2.0f;
+            float adjustedMouseY = mouseY - SCR_HEIGHT / 2.0f;
 
-                // Sensitivity factor for rotation
-                float sensitivity = 0.1f;
+            // Calculate rotation angles around x and y axes based on adjusted mouse offset
+            float rotationAngleX = sensitivity * adjustedMouseY;
+            float rotationAngleY = sensitivity * adjustedMouseX;
 
-                // Calculate rotation angles around x and y axes based on mouse offset
-                float rotationAngleX = sensitivity * offsetY;
-                float rotationAngleY = sensitivity * offsetX;
+            // Clamp rotation angles to avoid excessive rotation
+            rotationAngleX = glm::clamp(rotationAngleX, -90.0f, 90.0f);
+            rotationAngleY = glm::clamp(rotationAngleY, -90.0f, 90.0f);
 
-                // Optionally, you can calculate rotation angle around the z-axis based on mouse input or other factors
-                float rotationAngleZ = sensitivity * (offsetX + offsetY);
+            // Apply rotation to the fish model
+            fishModel = glm::rotate(glm::mat4(1.0f), glm::radians(rotationAngleX), glm::vec3(1.0f, 0.0f, 0.0f)) * fishModel; // Rotate around x-axis
+            fishModel = glm::rotate(fishModel, glm::radians(rotationAngleY), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
 
+            shadowMappingShader.SetMat4("model", fishModel);
+            fishObjModel.Draw(shadowMappingShader);
+        }
 
-                // Clamp rotation angles to avoid excessive rotation
-                rotationAngleX = glm::clamp(rotationAngleX, -90.0f, 90.0f);
-                rotationAngleY = glm::clamp(rotationAngleY, -90.0f, 90.0f);
-                rotationAngleZ = glm::clamp(rotationAngleZ, -90.0f, 90.0f);
-                glm::mat4 fishRotationMatrix = glm::mat4(1.0f);
-                fishRotationMatrix = glm::rotate(fishRotationMatrix, glm::radians(rotationAngleX), glm::vec3(1.0f, 0.0f, 0.0f)); // Rotate around x-axis
-                fishRotationMatrix = glm::rotate(fishRotationMatrix, glm::radians(rotationAngleY), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
-                fishRotationMatrix = glm::rotate(fishRotationMatrix, glm::radians(rotationAngleZ), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis if needed
-
-                fishModel = fishRotationMatrix * fishModel; // Apply rotation to the fish model
-                shadowMappingShader.SetMat4("model", fishModel);
-                fishObjModel.Draw(shadowMappingShader);
-            }
 
             else
             {
@@ -527,7 +519,7 @@ int main(int argc, char** argv)
                 // Draw colored border around fish object
                 DrawColoredBorder(fishPosition, fishObjModel, fishModel, isTransparent);
             }
-        }
+        //}
 
 
         transparentShader.Use();
