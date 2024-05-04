@@ -9,7 +9,7 @@
 #include <glfw3.h>
 #include <iostream>
 #include <fstream>
-//#include <sstream>
+#include <sstream>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -22,6 +22,7 @@
 
 #include <Windows.h>
 #include <locale>
+#include <map>
 #include <math.h> 
 
 #pragma comment (lib, "glfw3dll.lib")
@@ -29,48 +30,17 @@
 #pragma comment (lib, "OpenGL32.lib")
 
 
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+unsigned int SCR_WIDTH = 800;
+unsigned int SCR_HEIGHT = 600;
 
 bool rotateLight = true;
 
 GLuint ProjMatrixLocation, ViewMatrixLocation, WorldMatrixLocation;
 Camera* pCamera = nullptr;
-
+multimap<float, glm::vec3> sortedMap;
 void Cleanup()
 {
     delete pCamera;
-}
-
-unsigned int CreateTexture(const std::string& strTexturePath, float alpha)
-{
-    unsigned int textureId = -1;
-
-    // load image, create texture and generate mipmaps
-    int width, height, nrChannels;
-    stbi_set_flip_vertically_on_load(false); // tell stb_image.h to flip loaded texture's on the y-axis.
-    unsigned char* data = stbi_load(strTexturePath.c_str(), &width, &height, &nrChannels, STBI_rgb_alpha); // Ensure loading with alpha channel
-    if (data) {
-        glGenTextures(1, &textureId);
-        glBindTexture(GL_TEXTURE_2D, textureId);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); // Use GL_RGBA for alpha channel
-
-        // Adjust transparency by modifying alpha channel
-        for (int i = 0; i < width * height * 4; i += 4) {
-            data[i + 3] = static_cast<unsigned char>(alpha * 255); // Update alpha channel
-        }
-
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        // Restore the polygon mode to fill mode
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    }
-    else
-    {
-    	std::cout << "Failed to load texture" << std::endl;
-	}
-
-    return textureId;
 }
 
 // Function to draw colored border around fish object
@@ -114,7 +84,7 @@ void DrawColoredBorder(const glm::vec3& fishPosition, Model& fishObjModel, const
 
 // Function to switch camera perspective to that of the fish
 void SwitchToFishPerspective(Camera* camera, const glm::vec3& fishPosition)
-	{
+{
     // Set camera position to be behind and above the fish
     glm::vec3 offset = glm::vec3(0.0f, 1.5f, -3.0f);
     camera->SetPosition(fishPosition + offset);
@@ -123,7 +93,7 @@ void SwitchToFishPerspective(Camera* camera, const glm::vec3& fishPosition)
     glm::vec3 direction = glm::normalize(fishPosition - camera->GetPosition());
 
     // Calculate yaw and pitch angles from direction vector
-    float yaw = glm::degrees(atan2(direction.x, direction.z))+90;
+    float yaw = glm::degrees(atan2(direction.x, direction.z)) + 90;
     float pitch = glm::degrees(asin(direction.y));
 
     // Set camera orientation to look at the fish
@@ -146,6 +116,9 @@ bool IsCameraWithinROI(Camera* camera, const glm::vec3& fishPosition, float roiR
     return distance < roiRadius;
 }
 
+// Define global variables to store mouse coordinates
+double mouseX = 0.0;
+double mouseY = 0.0;
 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -171,15 +144,15 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         // Check if camera is within ROI of the fish
         if (IsCameraWithinROI(pCamera, fishPosition, roiRadius)) {
             // Switch camera perspective to that of the fish
-            if (keyPress %2 == 0) {
+            if (keyPress % 2 == 0) {
                 SwitchToFishPerspective(pCamera, fishPosition);
                 isInFishPerspective = true;
             }
-			else {
-				// Return to initial camera position
-				pCamera->SetPosition(glm::vec3(0.0, 1.0, 3.0));
+            else {
+                // Return to initial camera position
+                pCamera->SetPosition(glm::vec3(0.0, 1.0, 3.0));
                 isInFishPerspective = false;
-			}
+            }
             isTransparent = !isTransparent;
             keyPress++;
         }
@@ -191,6 +164,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         }
     }
 }
+
+
+//auxiliar fish model
+glm::mat4 auxFishModel = glm::mat4(1.0f);
 
 int main(int argc, char** argv)
 {
@@ -222,7 +199,7 @@ int main(int argc, char** argv)
     glfwSetKeyCallback(window, key_callback);
 
     // tell GLFW to capture our mouse
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glewInit();
 
@@ -247,15 +224,8 @@ int main(int argc, char** argv)
     Shader shadowMappingShader("ShadowMapping.vs", "ShadowMapping.fs");
     Shader shadowMappingDepthShader("ShadowMappingDepth.vs", "ShadowMappingDepth.fs");
     Shader transparentShader("TransparentObjShader.vs", "TransparentObjShader.fs");
-
-
-
-
- /*   std::string objFileName = (currentPath + "\\Models\\CylinderProject.obj");
-    Model objModel(objFileName, false);*/
-
-   /* std::string piratObjFileName = (currentPath + "\\Models\\Pirat\\Pirat.obj");
-    Model piratObjModel(piratObjFileName, false);*/
+    Shader blendingShader("Blending.vs", "Blending.fs");
+    Shader floorShader("Floor.vs", "Floor.fs");
 
     std::string fishObjFileName = (currentPath + "\\Models\\Fish\\fish.obj");
     Model fishObjModel(fishObjFileName, false);
@@ -266,21 +236,25 @@ int main(int argc, char** argv)
     std::string coralBeautyObjFileName = currentPath + "\\Models\\CoralBeauty\\coralBeauty.obj";
     Model coralBeautyModel(coralBeautyObjFileName, false);
 
+    Model grayFishModel(currentPath + "\\Models\\GreyFish\\fish.obj", false);
+
     // load textures
     // -------------
     Texture txtr;
     std::vector<unsigned int> texturePaths;
 
-    unsigned int glassTexture = CreateTexture(strExePath + "\\Glass.png",
-        		0.05f);
+    unsigned int glassTexture = txtr.CreateTexture(strExePath + "\\Glass.png",
+        0.05f);
     unsigned int floorTexture = txtr.CreateTexture(strExePath + "\\sand.jpg", 1.0f);
     texturePaths.push_back(glassTexture);
     texturePaths.push_back(floorTexture);
 
 
-    unsigned int fishTexture = CreateTexture(currentPath + "\\Models\\Fish\\fish.jpg", 1.0f);
-    unsigned int fish2Texture = CreateTexture(strExePath + "\\Models\\Fish2\\fish2.png", 1.0f);  
-    unsigned int coralBeautyTexture = CreateTexture(currentPath + "\\Models\\CoralBeauty\\coralBeauty.jpg", 1.0f);
+    unsigned int fishTexture = txtr.CreateTexture(currentPath + "\\Models\\Fish\\fish.jpg", 1.0f);
+    unsigned int fish2Texture = txtr.CreateTexture(strExePath + "\\Models\\Fish2\\fish2.jpg", 1.0f);
+    unsigned int coralBeautyTexture = txtr.CreateTexture(currentPath + "\\Models\\CoralBeauty\\coralBeauty.jpg", 1.0f);
+    unsigned int greyFishTexture = txtr.CreateTexture(currentPath + "\\Models\\GreyFish\\fish.png", 1.0f);
+    unsigned int coralTexture = txtr.CreateTexture(strExePath + "\\blue_coral.png", 1.0f);
 
     // configure depth map FBO
     // -----------------------
@@ -317,7 +291,38 @@ int main(int argc, char** argv)
     // -------------
     glm::vec3 lightPos(-2.0f, 4.0f, -1.0f);
 
-    glEnable(GL_CULL_FACE);
+
+    // Grass vertices
+    float grassVertices[] = {
+        -0.25f, -0.25f, 0.0f, 0.0f, 0.0f,
+        -0.25f, 0.25f, 0.0f, 0.0f, 1.0f,
+        0.25f, 0.25f, 0.0f, 1.0f, 1.0f,
+
+
+        -0.25f, -0.25f, 0.0f, 0.0f, 0.0f,
+        0.25f, 0.25f, 0.0f, 1.0f, 1.0f,
+        0.25f, -0.25f, 0.0f, 1.0f, 0.0f
+    };
+
+    int gridX = 10; // de exemplu, 10 pătrate pe axa X
+    int gridZ = 10; // de exemplu, 10 pătrate pe axa Z
+
+    // Dimensiunea pătratului de iarbă
+    float squareSize = 0.5f;
+
+    // Coordonatele de bază ale vertex-urilor pentru un pătrat de iarbă
+
+    // Grass VAO si VBO
+    unsigned int grassVAO, grassVBO;
+    glGenVertexArrays(1, &grassVAO);
+    glGenBuffers(1, &grassVBO);
+    glBindVertexArray(grassVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, grassVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(grassVertices), &grassVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
     // render loop
     // -----------
@@ -376,7 +381,7 @@ int main(int argc, char** argv)
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
         Scene scene;
-        scene.renderScene(shadowMappingDepthShader,texturePaths);
+        scene.renderScene(shadowMappingDepthShader, texturePaths);
         glCullFace(GL_BACK);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -415,27 +420,60 @@ int main(int argc, char** argv)
         glDisable(GL_CULL_FACE);
         scene.renderScene(shadowMappingShader, texturePaths);
 
-        
 
-
-        glEnable(GL_CULL_FACE);
-        glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, fishTexture);
-        shadowMappingShader.SetInt("fish1", 2); // Trimiteți unitatea de textură la shader
-        shadowMappingShader.SetInt("textureSelector", 0); // Selectează texture1 pentru primul pește
 
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, fish2Texture);
+
+        glm::mat4 fish2Model = glm::mat4(1.0f);
+
+        fish2Model = glm::translate(fish2Model, glm::vec3(1.0f, 0.0f, -1.0f));
+        fish2Model = glm::rotate(fish2Model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+        fish2Model = glm::scale(fish2Model, glm::vec3(0.1f, 0.1f, 0.1f));
+        shadowMappingShader.SetMat4("model", fish2Model);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, fish2Texture);
+        fish2ObjModel.Draw(shadowMappingShader);
+
+
+        glm::mat4 greyFish = glm::mat4(1.0f);
+        greyFish = glm::translate(greyFish, glm::vec3(-1.0f, 0.0f, -1.0f));
+        greyFish = glm::rotate(greyFish, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+        greyFish = glm::scale(greyFish, glm::vec3(0.1f, 0.1f, 0.1f));
+        shadowMappingShader.SetMat4("model", greyFish);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, greyFishTexture);
+        grayFishModel.Draw(shadowMappingShader);
+
+
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, coralBeautyTexture);
+        shadowMappingShader.SetInt("coralBeauty", 4);
+
+        // Configurare model matrix pentru Coral Beauty
+        glm::mat4 coralBeautyModelMatrix = glm::mat4(1.0f);
+        coralBeautyModelMatrix = glm::translate(coralBeautyModelMatrix, glm::vec3(2.0f, 0.0f, -1.0f));
+        coralBeautyModelMatrix = glm::scale(coralBeautyModelMatrix, glm::vec3(0.1f, 0.1f, 0.1f));
+        // Desenează modelul Coral Beauty
+        shadowMappingShader.SetMat4("model", coralBeautyModelMatrix);
+        coralBeautyModel.Draw(shadowMappingShader);
+
+        glActiveTexture(GL_TEXTURE0); // Folosește o altă unitate de textură
+        glBindTexture(GL_TEXTURE_2D, fishTexture);
         glm::mat4 fishModel = glm::mat4(1.0f); // Identity matrix
+        fishModel = glm::translate(fishModel, fishPosition);
         //rotate around z-axis
         fishModel = glm::rotate(fishModel, glm::radians(
-			90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis
+            90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis
         fishModel = glm::rotate(fishModel, glm::radians(
             90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
         fishModel = glm::scale(fishModel, glm::vec3(
-        	0.1f, 0.1f, 0.1f
+            0.1f, 0.1f, 0.1f
         )); // Scale uniformly
         shadowMappingShader.SetMat4("model", fishModel);
 
-        //if the isTransparent variable is true, the fish will be transparent
         if (isTransparent) {
             shadowMappingShader.SetVec4("objectColor", glm::vec4(1.0f, 1.0f, 1.0f, 0.0f));
             fishObjModel.Draw(shadowMappingShader);
@@ -444,43 +482,53 @@ int main(int argc, char** argv)
         }
         else {
             shadowMappingShader.SetVec4("objectColor", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-            fishObjModel.Draw(shadowMappingShader);
+            //make fish orientation math auxiliary model
+
+            if (isInFishPerspective)
+            {
+                float centerX = SCR_WIDTH / 2.0f;
+                float centerY = SCR_HEIGHT / 2.0f;
+
+                // Calculate offset from the center of the screen
+                float offsetX = mouseX - centerX;
+                float offsetY = mouseY - centerY;
+
+                // Sensitivity factor for rotation
+                float sensitivity = 0.1f;
+
+                // Calculate rotation angles around x and y axes based on mouse offset
+                float rotationAngleX = sensitivity * offsetY;
+                float rotationAngleY = sensitivity * offsetX;
+
+                // Optionally, you can calculate rotation angle around the z-axis based on mouse input or other factors
+                float rotationAngleZ = sensitivity * (offsetX + offsetY);
+
+
+                // Clamp rotation angles to avoid excessive rotation
+                rotationAngleX = glm::clamp(rotationAngleX, -90.0f, 90.0f);
+                rotationAngleY = glm::clamp(rotationAngleY, -90.0f, 90.0f);
+                rotationAngleZ = glm::clamp(rotationAngleZ, -90.0f, 90.0f);
+                glm::mat4 fishRotationMatrix = glm::mat4(1.0f);
+                fishRotationMatrix = glm::rotate(fishRotationMatrix, glm::radians(rotationAngleX), glm::vec3(1.0f, 0.0f, 0.0f)); // Rotate around x-axis
+                fishRotationMatrix = glm::rotate(fishRotationMatrix, glm::radians(rotationAngleY), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
+                fishRotationMatrix = glm::rotate(fishRotationMatrix, glm::radians(rotationAngleZ), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis if needed
+
+                fishModel = fishRotationMatrix * fishModel; // Apply rotation to the fish model
+                shadowMappingShader.SetMat4("model", fishModel);
+                fishObjModel.Draw(shadowMappingShader);
+            }
+
+            else
+            {
+                fishObjModel.Draw(shadowMappingShader);
+            }
+
             if (IsCameraWithinROI(pCamera, fishPosition, roiRadius)) {
                 // Draw colored border around fish object
                 DrawColoredBorder(fishPosition, fishObjModel, fishModel, isTransparent);
             }
         }
 
-
-        glActiveTexture(GL_TEXTURE3); // Folosește o altă unitate de textură
-        glBindTexture(GL_TEXTURE_2D, fish2Texture);
-        shadowMappingShader.SetInt("fish2", 3);
-        shadowMappingShader.SetInt("textureSelector", 1); // Selectează texture1 pentru primul pește
-
-        glm::mat4 fish2Model = glm::mat4(1.0f); // Creează o matrice identitate
-        // Setează poziționarea și scalarea modelului Fish2
-        fish2Model = glm::translate(fish2Model, glm::vec3(1.0f, 0.0f, -1.0f)); // Poziționează peștele
-        fish2Model = glm::scale(fish2Model, glm::vec3(0.1f, 0.1f, 0.1f)); // Scalați-l dacă este necesar
-        shadowMappingShader.SetMat4("model", fish2Model);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, fish2Texture);
-        fish2ObjModel.Draw(shadowMappingShader);
-
-        // Setează unitatea de textură corespunzătoare pentru textura Coral Beauty
-        glActiveTexture(GL_TEXTURE4); // Folosește o unitate de textură liberă, de exemplu GL_TEXTURE4
-        glBindTexture(GL_TEXTURE_2D, coralBeautyTexture);
-        shadowMappingShader.SetInt("coralBeauty", 4); // Asigură-te că shaderul are o uniformă pentru acesta
-
-        // Configurare model matrix pentru Coral Beauty
-        glm::mat4 coralBeautyModelMatrix = glm::mat4(1.0f);
-        coralBeautyModelMatrix = glm::translate(coralBeautyModelMatrix, glm::vec3(2.0f, 0.0f, -1.0f)); // Poziționează peștele
-        coralBeautyModelMatrix = glm::scale(coralBeautyModelMatrix, glm::vec3(0.1f, 0.1f, 0.1f)); // Scalați-l dacă este necesar
-
-        // Desenează modelul Coral Beauty
-        shadowMappingShader.SetMat4("model", coralBeautyModelMatrix);
-        coralBeautyModel.Draw(shadowMappingShader);
-
-        glDisable(GL_CULL_FACE);
 
         transparentShader.Use();
         transparentShader.SetMat4("projection", projection);
@@ -492,11 +540,13 @@ int main(int argc, char** argv)
 
         //make the cube object visible from all angles
 
-        
+        glDisable(GL_CULL_FACE);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texturePaths[0]);
 
-    	scene.renderCubes(const_cast<Shader&>(transparentShader), cube, texturePaths[0]);
-        
-        // Check if camera is within ROI of the fish
+        scene.renderCubes(const_cast<Shader&>(transparentShader), cube, texturePaths[0]);
+
+
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -517,15 +567,23 @@ void processInput(GLFWwindow* window)
 
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
     {
-	    pCamera->ProcessKeyboard(FORWARD, (float)deltaTime);
+        pCamera->ProcessKeyboard(FORWARD, (float)deltaTime);
         if (isInFishPerspective) {
-			fishPosition += glm::vec3(0.0f, 0.0f, 0.005f);
-		}
+            fishPosition += glm::vec3(0.0f, 0.0f, 0.007f);
+        }
     }
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-        pCamera->ProcessKeyboard(BACKWARD, (float)deltaTime);
+    {
+        if (!isInFishPerspective)
+        {
+            pCamera->ProcessKeyboard(BACKWARD, (float)deltaTime);
+        }
+    }
     if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+    {
         pCamera->ProcessKeyboard(LEFT, (float)deltaTime);
+
+    }
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
         pCamera->ProcessKeyboard(RIGHT, (float)deltaTime);
     if (glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS)
@@ -552,15 +610,19 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
     pCamera->Reshape(width, height);
+    //make other adjustments
+    SCR_WIDTH = width;
+    SCR_HEIGHT = height;
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
     pCamera->MouseControl((float)xpos, (float)ypos);
+    mouseX = xpos;
+    mouseY = ypos;
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yOffset)
 {
     pCamera->ProcessMouseScroll((float)yOffset);
 }
-

@@ -12,5 +12,5 @@ newmtl Ryukin_Goldfish
 	Kd 1.0000 1.0000 1.0000
 	Ks 0.5700 0.4359 0.1498
 	Ke 0.0000 0.0000 0.0000
-	map_Ka 13001_Ryukin_Goldfish_diff.jpg
-	map_Kd 13001_Ryukin_Goldfish_diff.jpg
+	map_Ka fish2.jpg
+	map_Kd fish2.jpg
