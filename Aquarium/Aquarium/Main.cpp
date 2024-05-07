@@ -11,7 +11,6 @@
 #include <fstream>
 #include <sstream>
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 
 #include <codecvt>
 
@@ -238,6 +237,10 @@ int main(int argc, char** argv)
 
     Model grayFishModel(currentPath + "\\Models\\GreyFish\\fish.obj", false);
 
+    std::string starfishObjFileName = currentPath + "\\Models\\Starfish\\starFish.obj";
+    Model starfishModel(starfishObjFileName, false);
+
+
     // load textures
     // -------------
     Texture txtr;
@@ -255,6 +258,7 @@ int main(int argc, char** argv)
     unsigned int coralBeautyTexture = txtr.CreateTexture(currentPath + "\\Models\\CoralBeauty\\coralBeauty.jpg", 1.0f);
     unsigned int greyFishTexture = txtr.CreateTexture(currentPath + "\\Models\\GreyFish\\fish.png", 1.0f);
     unsigned int coralTexture = txtr.CreateTexture(strExePath + "\\blue_coral.png", 1.0f);
+    unsigned int starfishTexture = txtr.CreateTexture(currentPath + "\\Models\\Starfish\\starFish.jpg", 1.0f);
 
     // configure depth map FBO
     // -----------------------
@@ -396,8 +400,9 @@ int main(int argc, char** argv)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Bind your texture
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, floorTexture); // Assuming floorTexture is the ID of your texture
+        // AM COMENTAT URMATOARELE DOUA LINII DEOARECE ACELEASI COMENZI SUNT SI LA LINIILE 383 SI 384
+        //glActiveTexture(GL_TEXTURE0);
+        //glBindTexture(GL_TEXTURE_2D, floorTexture); // Assuming floorTexture is the ID of your texture
 
 
 
@@ -455,10 +460,27 @@ int main(int argc, char** argv)
         // Configurare model matrix pentru Coral Beauty
         glm::mat4 coralBeautyModelMatrix = glm::mat4(1.0f);
         coralBeautyModelMatrix = glm::translate(coralBeautyModelMatrix, glm::vec3(2.0f, 0.0f, -1.0f));
-        coralBeautyModelMatrix = glm::scale(coralBeautyModelMatrix, glm::vec3(0.1f, 0.1f, 0.1f));
+        coralBeautyModelMatrix = glm::rotate(coralBeautyModelMatrix, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+        coralBeautyModelMatrix = glm::scale(coralBeautyModelMatrix, glm::vec3(1.1f, 1.1f, 1.1f));
         // Desenează modelul Coral Beauty
         shadowMappingShader.SetMat4("model", coralBeautyModelMatrix);
         coralBeautyModel.Draw(shadowMappingShader);
+
+        // Setează unitatea de textură pentru starfish
+        glActiveTexture(GL_TEXTURE5); // Alege o unitate de textură neutilizată anterior
+        glBindTexture(GL_TEXTURE_2D, starfishTexture);
+        shadowMappingShader.SetInt("starfish", 5);
+
+        // Configurare model matrix pentru Starfish
+        glm::mat4 starfishModelMatrix = glm::mat4(1.0f);
+        starfishModelMatrix = glm::translate(starfishModelMatrix, glm::vec3(-1.0f, 0.0f, -1.0f)); // Ajustează poziționarea
+        starfishModelMatrix = glm::scale(starfishModelMatrix, glm::vec3(0.1f, 0.1f, 0.1f)); // Ajustează scalarea
+
+        // Desenează modelul Starfish
+        shadowMappingShader.SetMat4("model", starfishModelMatrix);
+        starfishModel.Draw(shadowMappingShader);
+
+
 
         glActiveTexture(GL_TEXTURE0); // Folosește o altă unitate de textură
         glBindTexture(GL_TEXTURE_2D, fishTexture);
@@ -474,6 +496,7 @@ int main(int argc, char** argv)
         )); // Scale uniformly
         shadowMappingShader.SetMat4("model", fishModel);
 
+        
         //if (isTransparent) {
         //    shadowMappingShader.SetVec4("objectColor", glm::vec4(1.0f, 1.0f, 1.0f, 0.0f));
         //    fishObjModel.Draw(shadowMappingShader);
