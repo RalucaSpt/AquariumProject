@@ -13,6 +13,8 @@ class Shader
 public:
     // constructor generates the shaderStencilTesting on the fly
     // ------------------------------------------------------------------------
+    Shader() {}
+
     Shader(const char* vertexPath, const char* fragmentPath)
     {
         Init(vertexPath, fragmentPath);

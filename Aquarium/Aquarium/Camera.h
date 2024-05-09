@@ -173,6 +173,13 @@ class Camera
         	this->pitch = pitch;
         }
 
+        float roll;
+
+        void SetRoll(float x)
+        {
+        	this->roll = x;
+        }
+
     private:
         void ProcessMouseMovement(float xOffset, float yOffset, bool constrainPitch = true)
         {

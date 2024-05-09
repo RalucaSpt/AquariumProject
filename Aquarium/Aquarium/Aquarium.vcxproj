@@ -160,6 +160,7 @@
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="TransparentObjects.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
@@ -171,6 +172,7 @@
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="TextureStruct.h" />
+    <ClInclude Include="TransparentObjects.h" />
     <ClInclude Include="Vertex.h" />
   </ItemGroup>
   <ItemGroup>

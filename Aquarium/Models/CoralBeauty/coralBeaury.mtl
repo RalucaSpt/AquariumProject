@@ -1,7 +1,7 @@
 # 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
 # File Created: 10.01.2012 12:35:28
 
-newmtl 13009_Coral_Beauty_Angelfish_v1
+newmtl coralBeauty
 	Ns 30.0000
 	Ni 1.5000
 	d 1.0000
@@ -12,6 +12,6 @@ newmtl 13009_Coral_Beauty_Angelfish_v1
 	Kd 1.0000 1.0000 1.0000
 	Ks 0.3600 0.3600 0.3600
 	Ke 0.0000 0.0000 0.0000
-	map_Ka 13009_Coral_Beauty_Angelfish_v1_diff.jpg
-	map_Kd 13009_Coral_Beauty_Angelfish_v1_diff.jpg
-	map_Ks 13009_Coral_Beauty_Angelfish_v1_spec.jpg
+	map_Ka coralBeauty.jpg
+	map_Kd coralBeauty.jpg
+	map_Ks coralBeautySpec.jpg
