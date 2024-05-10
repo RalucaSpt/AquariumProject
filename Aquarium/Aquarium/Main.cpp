@@ -45,7 +45,7 @@ void Cleanup()
 }
 
 // Function to draw colored border around fish object
-void DrawColoredBorder(const glm::vec3& fishPosition, Model& fishObjModel, const glm::mat4& fishModel, bool transparent) {
+void DrawColoredBorder(Model& fishObjModel, const glm::mat4& fishModel, bool transparent) {
 	const glm::vec3 borderColor = glm::vec3(1.0f, 0.0f, 0.0f); // Red color
 
     glm::mat4 borderModel = fishModel;
@@ -77,6 +77,56 @@ void SwitchToFishPerspective(Camera* camera, const glm::vec3& fishPosition)
     camera->SetPitch(pitch);
 
 }
+
+// Define initial position of the bubble
+glm::vec3 bubblePosition = glm::vec3(0.0f, 0.0f, 0.0f);
+
+// Define parameters for spiral motion
+float radius = 0.5f;
+float verticalSpeed = 0.1f;
+float angularSpeed = 0.5f;
+float bubbleTime = 0.0f;
+float xOffset = 0.0f;
+float zOffset = 0.0f;
+// Function to update the position of the bubble
+void updateBubblePosition() {
+    // Compute spiral motion
+    float xSpiral = radius * cos(angularSpeed * bubbleTime); // Compute x-coordinate of spiral
+    float zSpiral = radius * sin(angularSpeed * bubbleTime); // Compute z-coordinate of spiral
+    float y = verticalSpeed * bubbleTime; // Compute y-coordinate for vertical motion
+
+    // Apply random movement
+    
+    int random = rand() % 100;
+    if (random == 3) {
+        //xOffset = -0.1f;
+        radius += 0.1f;
+    }
+    else if (random == 7) {
+        //xOffset = 0.1f;
+        radius -= 0.1f;
+    }
+    else if (random == 5) {
+        //zOffset = -0.1f;
+        
+    }
+    else if (random == 9) {
+        //zOffset = 0.1f;
+    }
+
+    // Update bubble position with spiral and random movement offsets
+    bubblePosition = glm::vec3(xSpiral + xOffset, y, zSpiral + zOffset);
+
+    // Increment time
+    bubbleTime += 0.01f;
+
+    // Reset time if it exceeds 2*PI
+    /*if (bubbleTime > 2 * glm::pi<float>()) {
+        bubbleTime = 0.0f;
+    }*/
+}
+
+
 
 float roiRadius = 5.0f;
 glm::vec3 fishPosition = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -110,6 +160,8 @@ bool isInFishPerspective = false;
 bool isTransparent = false;
 
 glm::mat4 fishModel = glm::mat4(1.0f); // Identity matrix
+
+
 
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -146,6 +198,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 //auxiliar fish model
 glm::mat4 auxFishModel = glm::mat4(1.0f);
+float fishAngleY = 0.0f;
+float fishAngleZ = 0.0f;
 
 int main(int argc, char** argv)
 {
@@ -219,6 +273,7 @@ int main(int argc, char** argv)
     std::string starfishObjFileName = currentPath + "\\Models\\Starfish\\starFish.obj";
     Model starfishModel(starfishObjFileName, false);
 
+    Model bubbleModel(currentPath + "\\Models\\Bubble\\bubble.obj", false);
 
     // load textures
     // -------------
@@ -235,7 +290,6 @@ int main(int argc, char** argv)
     unsigned int fishTexture = txtr.CreateTexture(currentPath + "\\Models\\Fish\\fish.jpg", 1.0f);
     unsigned int fish2Texture = txtr.CreateTexture(strExePath + "\\Models\\Fish2\\fish2.jpg", 1.0f);
     unsigned int coralBeautyTexture = txtr.CreateTexture(currentPath + "\\Models\\CoralBeauty\\coralBeauty.jpg", 1.0f);
-    unsigned int greyFishTexture = txtr.CreateTexture(currentPath + "\\Models\\GreyFish\\fish.png", 1.0f);
     unsigned int coralTexture = txtr.CreateTexture(strExePath + "\\blue_coral.png", 1.0f);
     unsigned int starfishTexture = txtr.CreateTexture(currentPath + "\\Models\\Starfish\\starFish.jpg", 1.0f);
 
@@ -426,20 +480,6 @@ int main(int argc, char** argv)
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, coralBeautyTexture);
         coralBeautyModel.Draw(shadowMappingShader);
-
-
-        
-
-       /* glm::mat4 greyFish = glm::mat4(1.0f);
-        greyFish = glm::translate(greyFish, glm::vec3(-1.0f, 0.0f, -1.0f));
-        greyFish = glm::rotate(greyFish, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-        greyFish = glm::scale(greyFish, glm::vec3(0.1f, 0.1f, 0.1f));
-        shadowMappingShader.SetMat4("model", greyFish);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, greyFishTexture);
-        grayFishModel.Draw(shadowMappingShader);*/
-
-
         
 
         // Setează unitatea de textură pentru starfish
@@ -459,7 +499,7 @@ int main(int argc, char** argv)
 
         glActiveTexture(GL_TEXTURE0); // Folosește o altă unitate de textură
         glBindTexture(GL_TEXTURE_2D, fishTexture);
-        glm::mat4 fishModel = glm::mat4(1.0f);
+    	fishModel = glm::mat4(1.0f);
         fishModel = glm::translate(fishModel, fishPosition);
         //rotate around z-axis
         fishModel = glm::rotate(fishModel, glm::radians(
@@ -476,77 +516,62 @@ int main(int argc, char** argv)
         float time = glfwGetTime(); // Get current time
         float fishSpeed = 1.0f; // Speed of fish animation
 
-        // Calculate new position of the fish along the X-axis based on time and speed
-        float newX = sin(time * fishSpeed) * 2.0f; // Adjust 2.0f to control the width of the fish's movement
+        // Define circle parameters
+        float radius = 8.0f; // Radius of the circular path
+        float angularSpeed = 0.1f; // Angular speed of the fish's movement
+
+        // Calculate new position of the fish along the circular path
+        float newX = sin(time * fishSpeed * angularSpeed) * radius; // X-coordinate of the fish's position
+        float newZ = cos(time * fishSpeed * angularSpeed) * radius; // Z-coordinate of the fish's position
+
+        // Calculate angle for fish rotation
+        float angle = atan2(newZ, newX); // Calculate angle based on fish's position
 
         // Update fish model matrix with new position
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, fishTexture);
+        //glActiveTexture(GL_TEXTURE0);
+        //glBindTexture(GL_TEXTURE_2D, fishTexture);
         glm::mat4 greyFish = glm::mat4(1.0f); // Reset fish model matrix
-        greyFish = glm::translate(greyFish, glm::vec3(newX, 0.0f, -1.0f)); // Update position
-        greyFish = glm::rotate(greyFish, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f)); // Rotate fish
+        greyFish = glm::translate(greyFish, glm::vec3(newX, 0.0f, newZ)); // Update position
+        greyFish = glm::rotate(greyFish, -angle, glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate fish
+        //greyFish = glm::rotate(greyFish, glm::radians(90.0f), glm::vec3(0.0f, -1.0f, 0.0f)); // Rotate fish
         greyFish = glm::scale(greyFish, glm::vec3(0.1f, 0.1f, 0.1f)); // Scale fish
         shadowMappingShader.SetMat4("model", greyFish); // Pass updated model matrix to shader
         grayFishModel.Draw(shadowMappingShader); // Draw fish object
 
+        glm::mat4 bubbleModelMatrix = glm::mat4(1.0f);
+
+        updateBubblePosition();
+        //move bubble to bubblePosition
+        bubbleModelMatrix = glm::translate(bubbleModelMatrix, bubblePosition);
+        //print coordinates of bubble
+        //bubbleModelMatrix = glm::translate(bubbleModelMatrix, glm::vec3(0.0f, 0.0f, 0.0f));
+        bubbleModelMatrix = glm::scale(bubbleModelMatrix, glm::vec3(0.1f, 0.1f, 0.1f));
+        shadowMappingShader.SetMat4("model", bubbleModelMatrix);
+
+        bubbleModel.Draw(shadowMappingShader);
 
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, fishTexture);
+        if (isInFishPerspective)
+        {
+            //Apply fishAngleY to fish model
+            fishModel = glm::rotate(fishModel, glm::radians(fishAngleZ), glm::vec3(0.0f, 0.0f, 1.0f));
+            fishModel = glm::rotate(fishModel, glm::radians(fishAngleY), glm::vec3(0.0f, 1.0f, 0.0f));
+        }
         shadowMappingShader.SetMat4("model", fishModel);
         fishObjModel.Draw(shadowMappingShader);
 
-        if (isInFishPerspective)
-        {
-            // Sensitivity factor for rotation
-            float sensitivity = 0.1f;
-
-            // Adjust mouse position to account for camera offset
-            float adjustedMouseX = mouseX - SCR_WIDTH / 2.0f;
-            float adjustedMouseY = mouseY - SCR_HEIGHT / 2.0f;
-
-            // Calculate rotation angles around x and y axes based on adjusted mouse offset
-            float rotationAngleX = sensitivity * adjustedMouseY;
-            float rotationAngleY = sensitivity * adjustedMouseX;
-
-            // Clamp rotation angles to avoid excessive rotation
-            rotationAngleX = glm::clamp(rotationAngleX, -90.0f, 90.0f);
-            rotationAngleY = glm::clamp(rotationAngleY, -90.0f, 90.0f);
-
-            // Apply rotation to the fish model
-            fishModel = glm::rotate(glm::mat4(1.0f), glm::radians(rotationAngleX), glm::vec3(1.0f, 0.0f, 0.0f)) * fishModel; // Rotate around x-axis
-            fishModel = glm::rotate(fishModel, glm::radians(rotationAngleY), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
-
-            
-        }
-
+        
     	if (IsCameraWithinROI(pCamera, fishPosition, roiRadius) && !isInFishPerspective) 
         {
-    		DrawColoredBorder(fishPosition, fishObjModel, fishModel, isTransparent);
+    		DrawColoredBorder(fishObjModel,  fishModel, isTransparent);
         }
 
         TransparentObjects transparentObjects;
         transparentObjects.Draw(transparentShader, pCamera, texturePaths[0], lightSpaceMatrix, lightPos, projection, view, scene);
 
-        //if we are in fish perspective, we need to change cameras
-        //meaning we will need a new camera that follows the fish object, instead of the one that is controlled by the user
-
-        Camera* fishCamera = new Camera(SCR_WIDTH, SCR_HEIGHT, fishPosition);
-
-        if (isInFishPerspective)
-        {
-        	// Render the scene from the fish's perspective
-            // Set the viewport to the size of the window
-			fishCamera->SetPosition(fishPosition + glm::vec3(0.0f, 0.0f, -3.0f));
-            // Set the camera position to the fish's position
-			fishCamera->SetYaw(90.0f);
-            // Set the yaw angle to 90 degrees
-			fishCamera->SetPitch(0.0f);
-// Set the pitch angle to 0 degrees
-			
-        }
-
+        
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);
@@ -607,7 +632,10 @@ void processInput(GLFWwindow* window)
     {
     	if (isInFishPerspective)
     	{
-    		fishPosition += glm::vec3(0.0f, 0.0f, -0.007f);
+    		fishPosition += glm::vec3(0.0f, 0.0f, 0.007f);
+            //modify position with respect fishAngleY and fishAngleZ
+            
+
             pCamera->ProcessKeyboard(FORWARD, (float)deltaTime);
 		}
 	}
@@ -615,11 +643,43 @@ void processInput(GLFWwindow* window)
     {
         if (isInFishPerspective)
         {
-            fishPosition += glm::vec3(-0.007f, 0.0f, 0.0f);
-            fishModel = glm::rotate(fishModel, glm::radians(1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-            //turn camera to the left
-            pCamera->ProcessKeyboard(LEFT, (float)deltaTime);
+            //fishPosition += glm::vec3(0.007f, 0.0f, 0.0f);
+            if (fishAngleZ < 90.0f)
+            {
+                fishAngleZ += 0.1f;
+			}
         }
+	}
+
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    {
+    	if (isInFishPerspective)
+    	{
+            if (fishAngleZ > -90.0f)
+            {
+            	fishAngleZ -= 0.1f;
+			}
+		}
+    }
+
+    //go up with space
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+    {
+    	if (isInFishPerspective)
+    	{
+    		//fishPosition += glm::vec3(0.0f, 0.007f, 0.0f);
+            fishAngleY += 0.1f;
+		}
+	}
+
+    //go down with left shift
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+	{
+		if (isInFishPerspective)
+		{
+			//fishPosition += glm::vec3(0.0f, -0.007f, 0.0f);
+			fishAngleY -= 0.1f;
+		}
 	}
 
 
