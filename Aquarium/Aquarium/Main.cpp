@@ -24,12 +24,16 @@
 #include <map>
 #include <math.h> 
 
+#include "Bubble.h"
 #include "TransparentObjects.h"
 
 #pragma comment (lib, "glfw3dll.lib")
 #pragma comment (lib, "glew32.lib")
 #pragma comment (lib, "OpenGL32.lib")
 
+#include <chrono>
+#include <thread>
+#include <random>
 
 unsigned int SCR_WIDTH = 800;
 unsigned int SCR_HEIGHT = 600;
@@ -44,6 +48,49 @@ void Cleanup()
     delete pCamera;
 }
 
+int numFishes = 20;
+
+struct BubbleParams
+{
+	glm::vec3 position;
+	float size;
+	float speed;
+    int startTime;
+};
+
+
+
+
+
+std::vector<glm::vec3> offsets(numFishes);
+std::vector<float> angularSpeeds(numFishes);
+void generateBubbleOffsets()
+{
+	for (int i = 0; i < numFishes; i++)
+	{
+		offsets[i] = glm::vec3(static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 0.1f)));
+	}
+    
+	for (int i = 0; i < numFishes; i++)
+	{
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<float> distribSpeed(0.1f, 0.5f); // Adjust range as needed
+        float randomAngularSpeed = distribSpeed(gen);
+		angularSpeeds[i] = randomAngularSpeed;
+	}
+}
+
+void GenerateNewBubbleOffsets(int index)
+{
+    offsets[index] = glm::vec3(static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 0.1f)));
+
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<float> distribSpeed(0.5f, 2.0f); // Adjust range as needed
+	float randomAngularSpeed = distribSpeed(gen);
+	angularSpeeds[index] = randomAngularSpeed;
+}
 // Function to draw colored border around fish object
 void DrawColoredBorder(Model& fishObjModel, const glm::mat4& fishModel, bool transparent) {
 	const glm::vec3 borderColor = glm::vec3(1.0f, 0.0f, 0.0f); // Red color
@@ -79,53 +126,68 @@ void SwitchToFishPerspective(Camera* camera, const glm::vec3& fishPosition)
 }
 
 // Define initial position of the bubble
-glm::vec3 bubblePosition = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 bubblePosition;
 
 // Define parameters for spiral motion
 float radius = 0.5f;
-float verticalSpeed = 0.1f;
+float verticalSpeed = 0.2f;
 float angularSpeed = 0.5f;
 float bubbleTime = 0.0f;
-float xOffset = 0.0f;
-float zOffset = 0.0f;
-// Function to update the position of the bubble
-void updateBubblePosition() {
-    // Compute spiral motion
-    float xSpiral = radius * cos(angularSpeed * bubbleTime); // Compute x-coordinate of spiral
-    float zSpiral = radius * sin(angularSpeed * bubbleTime); // Compute z-coordinate of spiral
-    float y = verticalSpeed * bubbleTime; // Compute y-coordinate for vertical motion
+//bubble size params
+float bubbleSize = 0.1f;
 
-    // Apply random movement
-    
-    int random = rand() % 100;
-    if (random == 3) {
-        //xOffset = -0.1f;
-        radius += 0.1f;
-    }
-    else if (random == 7) {
-        //xOffset = 0.1f;
-        radius -= 0.1f;
-    }
-    else if (random == 5) {
-        //zOffset = -0.1f;
-        
-    }
-    else if (random == 9) {
-        //zOffset = 0.1f;
-    }
 
-    // Update bubble position with spiral and random movement offsets
-    bubblePosition = glm::vec3(xSpiral + xOffset, y, zSpiral + zOffset);
-
-    // Increment time
-    bubbleTime += 0.01f;
-
-    // Reset time if it exceeds 2*PI
-    /*if (bubbleTime > 2 * glm::pi<float>()) {
-        bubbleTime = 0.0f;
-    }*/
+// Function to reset the position and size of the bubble with an offset
+void resetBubblePosition(glm::vec3 newPos, glm::vec3 offset) {
+    bubblePosition = newPos + offset;
+    //generate new random bubble size
+    bubbleSize = rand() % 10 / 100.0f;
+    bubbleTime= 0.0f;
 }
 
+// Function to update the position of the bubble with an offset
+void updateBubblePosition(glm::vec3 startPoz, glm::vec3 offset, float randomAngularSpeed) {
+    static std::chrono::steady_clock::time_point lastUpdateTime = std::chrono::steady_clock::now();
+
+    // Check if 2 seconds have passed since the last update
+    std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsedTime = currentTime - lastUpdateTime;
+
+    // If 2 seconds have passed, update the bubble position
+    lastUpdateTime = currentTime;
+    // Compute spiral motion with the randomized angular speed
+    float xSpiral = radius * cos(randomAngularSpeed * bubbleTime); // Compute x-coordinate of spiral
+    float zSpiral = radius * sin(randomAngularSpeed * bubbleTime); // Compute z-coordinate of spiral
+    float y = verticalSpeed * bubbleTime; // Compute y-coordinate for vertical motion
+
+    bubbleSize -= 0.0001f;
+    if (bubbleSize <= 0.0f)
+    {
+        if (elapsedTime.count() < 2.0) {
+            resetBubblePosition(startPoz, offset);
+            return;
+        }
+    }
+
+    bubblePosition = startPoz + glm::vec3(xSpiral , y, zSpiral);
+    bubbleTime += 0.001f;
+}
+
+
+// Function to generate a random offset for the bubble position
+glm::vec3 generateRandomOffset(float minX, float maxX, float minY, float maxY, float minZ, float maxZ) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> distribX(minX, maxX);
+    std::uniform_real_distribution<float> distribY(minY, maxY);
+    std::uniform_real_distribution<float> distribZ(minZ, maxZ);
+
+    float offsetX = distribX(gen);
+    float offsetY = distribY(gen);
+    float offsetZ = distribZ(gen);
+
+    return glm::vec3(offsetX, offsetY, offsetZ);
+}
 
 
 float roiRadius = 5.0f;
@@ -162,8 +224,6 @@ bool isTransparent = false;
 glm::mat4 fishModel = glm::mat4(1.0f); // Identity matrix
 
 
-
-
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_A && action == GLFW_PRESS) {
@@ -197,9 +257,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 
 //auxiliar fish model
-glm::mat4 auxFishModel = glm::mat4(1.0f);
 float fishAngleY = 0.0f;
 float fishAngleZ = 0.0f;
+Scene scene;
 
 int main(int argc, char** argv)
 {
@@ -256,14 +316,12 @@ int main(int argc, char** argv)
     Shader shadowMappingShader("ShadowMapping.vs", "ShadowMapping.fs");
     Shader shadowMappingDepthShader("ShadowMappingDepth.vs", "ShadowMappingDepth.fs");
     Shader transparentShader("TransparentObjShader.vs", "TransparentObjShader.fs");
-    Shader blendingShader("Blending.vs", "Blending.fs");
-    Shader floorShader("Floor.vs", "Floor.fs");
 
     std::string fishObjFileName = (currentPath + "\\Models\\Fish\\fish.obj");
     Model fishObjModel(fishObjFileName, false);
 
-    std::string fish2ObjFileName = (currentPath + "\\Models\\Fish2\\fish2.obj");
-    Model fish2ObjModel(fish2ObjFileName, false);
+    std::string goldFishObjFileName = (currentPath + "\\Models\\Fish2\\fish2.obj");
+    Model goldFishObjModel(goldFishObjFileName, false);
 
     std::string coralBeautyObjFileName = currentPath + "\\Models\\CoralBeauty\\coralBeauty.obj";
     Model coralBeautyModel(coralBeautyObjFileName, false);
@@ -288,14 +346,10 @@ int main(int argc, char** argv)
 
 
     unsigned int fishTexture = txtr.CreateTexture(currentPath + "\\Models\\Fish\\fish.jpg", 1.0f);
-    unsigned int fish2Texture = txtr.CreateTexture(strExePath + "\\Models\\Fish2\\fish2.jpg", 1.0f);
-    unsigned int coralBeautyTexture = txtr.CreateTexture(currentPath + "\\Models\\CoralBeauty\\coralBeauty.jpg", 1.0f);
-    unsigned int coralTexture = txtr.CreateTexture(strExePath + "\\blue_coral.png", 1.0f);
-    unsigned int starfishTexture = txtr.CreateTexture(currentPath + "\\Models\\Starfish\\starFish.jpg", 1.0f);
-
+    
     // configure depth map FBO
     // -----------------------
-    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+	unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
     unsigned int depthMapFBO;
     glGenFramebuffers(1, &depthMapFBO);
     // create depth texture
@@ -304,10 +358,7 @@ int main(int argc, char** argv)
     glBindTexture(GL_TEXTURE_2D, depthMap);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
     // attach depth texture as FBO's depth buffer
@@ -328,73 +379,26 @@ int main(int argc, char** argv)
     // -------------
     glm::vec3 lightPos(-2.0f, 4.0f, -1.0f);
 
+    generateBubbleOffsets();
 
-    // Grass vertices
-    float grassVertices[] = {
-        -0.25f, -0.25f, 0.0f, 0.0f, 0.0f,
-        -0.25f, 0.25f, 0.0f, 0.0f, 1.0f,
-        0.25f, 0.25f, 0.0f, 1.0f, 1.0f,
-
-
-        -0.25f, -0.25f, 0.0f, 0.0f, 0.0f,
-        0.25f, 0.25f, 0.0f, 1.0f, 1.0f,
-        0.25f, -0.25f, 0.0f, 1.0f, 0.0f
-    };
-
-    int gridX = 10; // de exemplu, 10 pătrate pe axa X
-    int gridZ = 10; // de exemplu, 10 pătrate pe axa Z
-
-    // Dimensiunea pătratului de iarbă
-    float squareSize = 0.5f;
-
-    // Coordonatele de bază ale vertex-urilor pentru un pătrat de iarbă
-
-    // Grass VAO si VBO
-    unsigned int grassVAO, grassVBO;
-    glGenVertexArrays(1, &grassVAO);
-    glGenBuffers(1, &grassVBO);
-    glBindVertexArray(grassVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, grassVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(grassVertices), &grassVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-
-    // render loop
-    // -----------
     while (!glfwWindowShouldClose(window))
     {
-        // per-frame time logic
-        // --------------------
+        
         float currentFrame = (float)glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        // input
-        // -----
         processInput(window);
-
-        // render
-        // ------
-        glClearColor(0.1f, 0.1f, 0.1f, 0.0f); // Set clear color with alpha 0
+        glClearColor(0.5f, 0.5f, 1.0f, 0.5f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        // Enable blending
-        glEnable(GL_BLEND);
-        // Set blend function
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-
-        // 1. render depth of scene to texture (from light's perspective)
+        
         glm::mat4 lightProjection, lightView;
         glm::mat4 lightSpaceMatrix;
         float near_plane = 1.0f, far_plane = 7.5f;
 
         if (rotateLight) {
-            // Calculăm unghiul pentru rotația luminii
             float radius = 2.0f;
             float time = glfwGetTime();
             float lightX = cos(time) * radius;
@@ -415,24 +419,15 @@ int main(int argc, char** argv)
         glClear(GL_DEPTH_BUFFER_BIT);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, floorTexture);
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_FRONT);
-        Scene scene;
+       
         scene.renderScene(shadowMappingDepthShader, texturePaths);
         glCullFace(GL_BACK);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-
-        // reset viewport
-        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        
-
-        // 2. render scene as normal using the generated depth/shadow map 
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         shadowMappingShader.Use();
+
         glm::mat4 projection = pCamera->GetProjectionMatrix();
         glm::mat4 view = pCamera->GetViewMatrix();
         shadowMappingShader.SetMat4("projection", projection);
@@ -441,51 +436,28 @@ int main(int argc, char** argv)
         shadowMappingShader.SetVec3("viewPos", pCamera->GetPosition());
         shadowMappingShader.SetVec3("lightPos", lightPos);
         shadowMappingShader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, floorTexture);
+        
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
         glDisable(GL_CULL_FACE);
         scene.renderScene(shadowMappingShader, texturePaths);
 
+    	glm::mat4 goldFish = glm::mat4(1.0f);
 
-        glBindTexture(GL_TEXTURE_2D, fishTexture);
-
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, fish2Texture);
-
-        glm::mat4 fish2Model = glm::mat4(1.0f);
-
-        fish2Model = glm::translate(fish2Model, glm::vec3(1.0f, 0.0f, -1.0f));
-        fish2Model = glm::rotate(fish2Model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-        fish2Model = glm::scale(fish2Model, glm::vec3(0.1f, 0.1f, 0.1f));
-        shadowMappingShader.SetMat4("model", fish2Model);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, fish2Texture);
-        fish2ObjModel.Draw(shadowMappingShader);
+        goldFish = glm::translate(goldFish, glm::vec3(1.0f, 0.0f, -1.0f));
+        goldFish = glm::rotate(goldFish, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+        goldFish = glm::scale(goldFish, glm::vec3(0.1f, 0.1f, 0.1f));
+        shadowMappingShader.SetMat4("model", goldFish);
+    	goldFishObjModel.Draw(shadowMappingShader);
 
 
-       /* glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, coralBeautyTexture);
-        shadowMappingShader.SetInt("coralBeauty", 4);*/
-
-        // Configurare model matrix pentru Coral Beauty
         glm::mat4 coralBeautyModelMatrix = glm::mat4(1.0f);
         coralBeautyModelMatrix = glm::translate(coralBeautyModelMatrix, glm::vec3(2.0f, 0.0f, -1.0f));
         coralBeautyModelMatrix = glm::rotate(coralBeautyModelMatrix, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-        coralBeautyModelMatrix = glm::scale(coralBeautyModelMatrix, glm::vec3(1.1f, 1.1f, 1.1f));
+        coralBeautyModelMatrix = glm::scale(coralBeautyModelMatrix, glm::vec3(0.8f, 0.8f, 0.8f));
         // Desenează modelul Coral Beauty
         shadowMappingShader.SetMat4("model", coralBeautyModelMatrix);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, coralBeautyTexture);
         coralBeautyModel.Draw(shadowMappingShader);
-        
-
-        // Setează unitatea de textură pentru starfish
-        glActiveTexture(GL_TEXTURE5); // Alege o unitate de textură neutilizată anterior
-        glBindTexture(GL_TEXTURE_2D, starfishTexture);
-        shadowMappingShader.SetInt("starfish", 5);
 
         // Configurare model matrix pentru Starfish
         glm::mat4 starfishModelMatrix = glm::mat4(1.0f);
@@ -496,9 +468,6 @@ int main(int argc, char** argv)
         shadowMappingShader.SetMat4("model", starfishModelMatrix);
         starfishModel.Draw(shadowMappingShader);
 
-
-        glActiveTexture(GL_TEXTURE0); // Folosește o altă unitate de textură
-        glBindTexture(GL_TEXTURE_2D, fishTexture);
     	fishModel = glm::mat4(1.0f);
         fishModel = glm::translate(fishModel, fishPosition);
         //rotate around z-axis
@@ -520,35 +489,62 @@ int main(int argc, char** argv)
         float radius = 8.0f; // Radius of the circular path
         float angularSpeed = 0.1f; // Angular speed of the fish's movement
 
-        // Calculate new position of the fish along the circular path
-        float newX = sin(time * fishSpeed * angularSpeed) * radius; // X-coordinate of the fish's position
-        float newZ = cos(time * fishSpeed * angularSpeed) * radius; // Z-coordinate of the fish's position
+         // Number of fishes in the school
+        float spacing = 0.2f; // Spacing between fishes
 
-        // Calculate angle for fish rotation
-        float angle = atan2(newZ, newX); // Calculate angle based on fish's position
+        // Loop to create the fish school
+        for (int i = 0; i < numFishes; ++i) {
+            // Calculate angle for each fish
+            float angle = time * fishSpeed * angularSpeed + i * (2.0f * glm::pi<float>()) / numFishes;
 
-        // Update fish model matrix with new position
-        //glActiveTexture(GL_TEXTURE0);
-        //glBindTexture(GL_TEXTURE_2D, fishTexture);
-        glm::mat4 greyFish = glm::mat4(1.0f); // Reset fish model matrix
-        greyFish = glm::translate(greyFish, glm::vec3(newX, 0.0f, newZ)); // Update position
-        greyFish = glm::rotate(greyFish, -angle, glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate fish
-        //greyFish = glm::rotate(greyFish, glm::radians(90.0f), glm::vec3(0.0f, -1.0f, 0.0f)); // Rotate fish
-        greyFish = glm::scale(greyFish, glm::vec3(0.1f, 0.1f, 0.1f)); // Scale fish
-        shadowMappingShader.SetMat4("model", greyFish); // Pass updated model matrix to shader
-        grayFishModel.Draw(shadowMappingShader); // Draw fish object
+            // Calculate position for each fish along the circular path
+            float newX = sin(angle) * radius; // X-coordinate of the fish's position
+            float newZ = cos(angle) * radius; // Z-coordinate of the fish's position
 
-        glm::mat4 bubbleModelMatrix = glm::mat4(1.0f);
+            // Calculate row and column indices
+            int row = i / 5; // Assuming 5 fishes per row
+            int col = i % 5;
 
-        updateBubblePosition();
-        //move bubble to bubblePosition
-        bubbleModelMatrix = glm::translate(bubbleModelMatrix, bubblePosition);
-        //print coordinates of bubble
-        //bubbleModelMatrix = glm::translate(bubbleModelMatrix, glm::vec3(0.0f, 0.0f, 0.0f));
-        bubbleModelMatrix = glm::scale(bubbleModelMatrix, glm::vec3(0.1f, 0.1f, 0.1f));
-        shadowMappingShader.SetMat4("model", bubbleModelMatrix);
+            // Calculate position for each fish
+            float posX = col * spacing;
+            float posY = 0.0f;
+            float posZ = row * spacing;
 
-        bubbleModel.Draw(shadowMappingShader);
+
+            //calculate new position for bubble
+            glm::vec3 bubbleInitialPos = glm::vec3(posX + newX, 0.0f, posZ + newZ);
+
+            glm::mat4 greyFish = glm::mat4(1.0f); // Reset fish model matrix
+            greyFish = glm::translate(greyFish, glm::vec3(posX + newX, posY, posZ+newZ)); // Update position
+            greyFish = glm::rotate(greyFish, -angle, glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate fish
+            greyFish = glm::scale(greyFish, glm::vec3(0.1f, 0.1f, 0.1f)); // Scale fish
+            shadowMappingShader.SetMat4("model", greyFish); // Pass updated model matrix to shader
+            grayFishModel.Draw(shadowMappingShader); // Draw fish object
+        	glm::mat4 bubbleModelMatrix = glm::mat4(1.0f);
+            shadowMappingShader.SetFloat("alpha", 0.5f);
+
+            //updateBubblePosition(fishPosition, bubbleSize, offsets[i], angularSpeeds[i]);
+            updateBubblePosition(bubbleInitialPos, bubblePosition, angularSpeeds[i]);
+            
+            bubbleModelMatrix = glm::translate(bubbleModelMatrix, bubblePosition);
+            bubbleModelMatrix = glm::scale(bubbleModelMatrix, glm::vec3(bubbleSize, bubbleSize, bubbleSize));
+            shadowMappingShader.SetMat4("model", bubbleModelMatrix);
+            bubbleModel.Draw(shadowMappingShader);
+        }
+
+
+       // glm::mat4 bubbleModelMatrix = glm::mat4(1.0f);
+       //// Bubble bubble;
+       // //set alpha for bubble
+       // shadowMappingShader.SetFloat("alpha", 0.5f);
+       // updateBubblePosition(fishPosition);
+       // bubbleModelMatrix = glm::translate(bubbleModelMatrix, bubblePosition);
+       // //use bubbleSize to scale the bubble
+       // bubbleModelMatrix = glm::scale(bubbleModelMatrix, glm::vec3(bubbleSize, bubbleSize, bubbleSize));
+       // //bubbleModelMatrix = glm::scale(bubbleModelMatrix, glm::vec3(0.1f, 0.1f, 0.1f));
+       // shadowMappingShader.SetMat4("model", bubbleModelMatrix);
+
+       // bubbleModel.Draw(shadowMappingShader);
 
 
         glActiveTexture(GL_TEXTURE0);

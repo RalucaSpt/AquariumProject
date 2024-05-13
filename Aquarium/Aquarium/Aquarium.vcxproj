@@ -151,6 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Bubble.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CubeObj.cpp" />
     <ClCompile Include="Floor.cpp" />
@@ -163,6 +164,7 @@
     <ClCompile Include="TransparentObjects.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Bubble.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CubeObj.h" />
     <ClInclude Include="Floor.h" />

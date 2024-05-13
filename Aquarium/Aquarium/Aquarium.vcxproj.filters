@@ -45,6 +45,9 @@
     <ClCompile Include="TransparentObjects.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Bubble.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h">
@@ -78,6 +81,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TransparentObjects.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Bubble.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
