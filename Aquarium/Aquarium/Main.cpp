@@ -48,52 +48,9 @@ void Cleanup()
     delete pCamera;
 }
 
-int numFishes = 20;
-
-struct BubbleParams
-{
-	glm::vec3 position;
-	float size;
-	float speed;
-    int startTime;
-};
-
-
-
-
-
-std::vector<glm::vec3> offsets(numFishes);
-std::vector<float> angularSpeeds(numFishes);
-void generateBubbleOffsets()
-{
-	for (int i = 0; i < numFishes; i++)
-	{
-		offsets[i] = glm::vec3(static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 0.1f)));
-	}
-    
-	for (int i = 0; i < numFishes; i++)
-	{
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_real_distribution<float> distribSpeed(0.1f, 0.5f); // Adjust range as needed
-        float randomAngularSpeed = distribSpeed(gen);
-		angularSpeeds[i] = randomAngularSpeed;
-	}
-}
-
-void GenerateNewBubbleOffsets(int index)
-{
-    offsets[index] = glm::vec3(static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 0.1f)));
-
-	std::random_device rd;
-	std::mt19937 gen(rd());
-	std::uniform_real_distribution<float> distribSpeed(0.5f, 2.0f); // Adjust range as needed
-	float randomAngularSpeed = distribSpeed(gen);
-	angularSpeeds[index] = randomAngularSpeed;
-}
 // Function to draw colored border around fish object
 void DrawColoredBorder(Model& fishObjModel, const glm::mat4& fishModel, bool transparent) {
-	const glm::vec3 borderColor = glm::vec3(1.0f, 0.0f, 0.0f); // Red color
+    const glm::vec3 borderColor = glm::vec3(1.0f, 0.0f, 0.0f); // Red color
 
     glm::mat4 borderModel = fishModel;
     Shader borderShader("border.vs", "border.fs");
@@ -125,68 +82,82 @@ void SwitchToFishPerspective(Camera* camera, const glm::vec3& fishPosition)
 
 }
 
+
+int numGreyFishes = 20;
+int numBubbles = 20;
+
+struct BubbleParams
+{
+	glm::vec3 position;
+    glm::vec3 newPos;
+	float size;
+	float speed;
+    float startTime;
+    float radius;
+};
+
+std::vector<BubbleParams> bubbles;
+
+//// Define parameters for spiral motion
+float verticalSpeed = 0.2f;
+float bubbleTime = 0.0f;
+void generateBubblesParams()
+{
+	for (int i = 0; i < numBubbles; i++)
+	{
+		BubbleParams bubble;
+		bubble.position = glm::vec3(static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 0.1f)));
+		bubble.size = rand() % 10 / 100.0f;
+		bubble.speed = rand() % 10 / 100.0f;
+		bubble.startTime = rand() % 10;
+        bubble.radius = rand() % 10 / 10.0f;
+		bubbles.push_back(bubble);
+	}
+}
+
+
+void generateBubbleParams(int index)
+{
+	bubbles[index].position = glm::vec3(static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 0.1f)));
+	bubbles[index].size = rand() % 10 / 100.0f;
+	bubbles[index].speed = rand() % 10 / 100.0f;
+	bubbles[index].startTime = 0;
+	bubbles[index].radius = rand() % 10 / 10.0f;
+}
+
 // Define initial position of the bubble
 glm::vec3 bubblePosition;
 
-// Define parameters for spiral motion
-float radius = 0.5f;
-float verticalSpeed = 0.2f;
-float angularSpeed = 0.5f;
-float bubbleTime = 0.0f;
-//bubble size params
-float bubbleSize = 0.1f;
-
-
-// Function to reset the position and size of the bubble with an offset
-void resetBubblePosition(glm::vec3 newPos, glm::vec3 offset) {
-    bubblePosition = newPos + offset;
-    //generate new random bubble size
-    bubbleSize = rand() % 10 / 100.0f;
-    bubbleTime= 0.0f;
+void resetBubblePosition(int index) {
+    bubbles[index].position = bubbles[index].newPos;
+    bubbles[index].size = rand() % 10 / 100.0f;
+    bubbles[index].startTime = 0.0f;
 }
 
 // Function to update the position of the bubble with an offset
-void updateBubblePosition(glm::vec3 startPoz, glm::vec3 offset, float randomAngularSpeed) {
+void updateBubblePosition(int index) {
     static std::chrono::steady_clock::time_point lastUpdateTime = std::chrono::steady_clock::now();
-
-    // Check if 2 seconds have passed since the last update
     std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsedTime = currentTime - lastUpdateTime;
 
     // If 2 seconds have passed, update the bubble position
     lastUpdateTime = currentTime;
-    // Compute spiral motion with the randomized angular speed
-    float xSpiral = radius * cos(randomAngularSpeed * bubbleTime); // Compute x-coordinate of spiral
-    float zSpiral = radius * sin(randomAngularSpeed * bubbleTime); // Compute z-coordinate of spiral
-    float y = verticalSpeed * bubbleTime; // Compute y-coordinate for vertical motion
 
-    bubbleSize -= 0.0001f;
-    if (bubbleSize <= 0.0f)
+    float xSpiral = 0.5f * cos(bubbles[index].speed * bubbles[index].startTime); // Compute x-coordinate of spiral
+    float zSpiral = 0.5f * sin(bubbles[index].speed * bubbles[index].startTime); // Compute z-coordinate of spiral
+    float y = verticalSpeed * bubbles[index].startTime; // Compute y-coordinate for vertical motion
+    bubbles[index].size -= 0.0001f;
+    bubbles[index].startTime += 0.01f;
+
+    if (bubbles[index].size <= 0.0f)
     {
-        if (elapsedTime.count() < 2.0) {
-            resetBubblePosition(startPoz, offset);
-            return;
-        }
-    }
-
-    bubblePosition = startPoz + glm::vec3(xSpiral , y, zSpiral);
-    bubbleTime += 0.001f;
-}
-
-
-// Function to generate a random offset for the bubble position
-glm::vec3 generateRandomOffset(float minX, float maxX, float minY, float maxY, float minZ, float maxZ) {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> distribX(minX, maxX);
-    std::uniform_real_distribution<float> distribY(minY, maxY);
-    std::uniform_real_distribution<float> distribZ(minZ, maxZ);
-
-    float offsetX = distribX(gen);
-    float offsetY = distribY(gen);
-    float offsetZ = distribZ(gen);
-
-    return glm::vec3(offsetX, offsetY, offsetZ);
+    	if (elapsedTime.count() < 2.0)
+    	{
+    		resetBubblePosition(index);
+			return;
+		}
+	}
+	bubbles[index].position = bubbles[index].newPos + glm::vec3(xSpiral, y, zSpiral);
 }
 
 
@@ -198,8 +169,6 @@ bool IsCameraWithinROI(Camera* camera, const glm::vec3& fishPosition, float roiR
     // Calculate distance between camera position and fish position
     glm::vec3 cameraPosition = camera->GetPosition();
     float distance = glm::distance(cameraPosition, fishPosition);
-
-    // Check if distance is within ROI radius
     return distance < roiRadius;
 }
 
@@ -290,9 +259,6 @@ int main(int argc, char** argv)
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetKeyCallback(window, key_callback);
 
-    // tell GLFW to capture our mouse
-    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
     glewInit();
 
     // Create Cam
@@ -379,7 +345,7 @@ int main(int argc, char** argv)
     // -------------
     glm::vec3 lightPos(-2.0f, 4.0f, -1.0f);
 
-    generateBubbleOffsets();
+    generateBubblesParams();
 
     while (!glfwWindowShouldClose(window))
     {
@@ -493,9 +459,9 @@ int main(int argc, char** argv)
         float spacing = 0.2f; // Spacing between fishes
 
         // Loop to create the fish school
-        for (int i = 0; i < numFishes; ++i) {
+        for (int i = 0; i < numGreyFishes;++i) {
             // Calculate angle for each fish
-            float angle = time * fishSpeed * angularSpeed + i * (2.0f * glm::pi<float>()) / numFishes;
+            float angle = time * fishSpeed * angularSpeed + i * (2.0f * glm::pi<float>()) / numGreyFishes;
 
             // Calculate position for each fish along the circular path
             float newX = sin(angle) * radius; // X-coordinate of the fish's position
@@ -520,32 +486,10 @@ int main(int argc, char** argv)
             greyFish = glm::scale(greyFish, glm::vec3(0.1f, 0.1f, 0.1f)); // Scale fish
             shadowMappingShader.SetMat4("model", greyFish); // Pass updated model matrix to shader
             grayFishModel.Draw(shadowMappingShader); // Draw fish object
-        	glm::mat4 bubbleModelMatrix = glm::mat4(1.0f);
-            shadowMappingShader.SetFloat("alpha", 0.5f);
 
-            //updateBubblePosition(fishPosition, bubbleSize, offsets[i], angularSpeeds[i]);
-            updateBubblePosition(bubbleInitialPos, bubblePosition, angularSpeeds[i]);
-            
-            bubbleModelMatrix = glm::translate(bubbleModelMatrix, bubblePosition);
-            bubbleModelMatrix = glm::scale(bubbleModelMatrix, glm::vec3(bubbleSize, bubbleSize, bubbleSize));
-            shadowMappingShader.SetMat4("model", bubbleModelMatrix);
-            bubbleModel.Draw(shadowMappingShader);
+            bubbles[i].newPos = bubbleInitialPos;
+
         }
-
-
-       // glm::mat4 bubbleModelMatrix = glm::mat4(1.0f);
-       //// Bubble bubble;
-       // //set alpha for bubble
-       // shadowMappingShader.SetFloat("alpha", 0.5f);
-       // updateBubblePosition(fishPosition);
-       // bubbleModelMatrix = glm::translate(bubbleModelMatrix, bubblePosition);
-       // //use bubbleSize to scale the bubble
-       // bubbleModelMatrix = glm::scale(bubbleModelMatrix, glm::vec3(bubbleSize, bubbleSize, bubbleSize));
-       // //bubbleModelMatrix = glm::scale(bubbleModelMatrix, glm::vec3(0.1f, 0.1f, 0.1f));
-       // shadowMappingShader.SetMat4("model", bubbleModelMatrix);
-
-       // bubbleModel.Draw(shadowMappingShader);
-
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, fishTexture);
@@ -567,14 +511,22 @@ int main(int argc, char** argv)
         TransparentObjects transparentObjects;
         transparentObjects.Draw(transparentShader, pCamera, texturePaths[0], lightSpaceMatrix, lightPos, projection, view, scene);
 
+        //render all bubbles
+        for (int i = 0; i < numBubbles; i++)
+        {
+        	//shadowMappingShader.SetFloat("alpha", 0.5f);
+			glm::mat4 bubbleModelMatrix = glm::mat4(1.0f);
+            updateBubblePosition(i);
+			bubbleModelMatrix = glm::translate(bubbleModelMatrix, bubbles[i].position);
+			bubbleModelMatrix = glm::scale(bubbleModelMatrix, glm::vec3(bubbles[i].size, bubbles[i].size, bubbles[i].size));
+            transparentShader.SetMat4("model", bubbleModelMatrix);
+			bubbleModel.Draw(transparentShader);
+		}
         
-
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    // optional: de-allocate all resources once they've outlived their purpose:
     delete pCamera;
 
     glfwTerminate();
