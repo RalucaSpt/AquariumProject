@@ -1,50 +1,31 @@
-﻿#include <stdlib.h>
-#include <stdio.h>
+﻿#define GLM_FORCE_CTOR_INIT 
+
 #include <GL/glew.h>
-#define GLM_FORCE_CTOR_INIT 
-#include <GLM.hpp>
-#include <gtc/matrix_transform.hpp>
-#include <gtc/type_ptr.hpp>
 #include <glfw3.h>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#define STB_IMAGE_IMPLEMENTATION
+#include <chrono>
 
-#include <codecvt>
-
-#include "Shader.h"
-#include "Model.h"
 #include "Camera.h"
-
-#include <Windows.h>
-#include <locale>
-#include <map>
-#include <math.h> 
-
+#include "Shader.h"
+#include "Mesh.h"
+#include "Model.h"
+#include <stb_image.h>
 
 #pragma comment (lib, "glfw3dll.lib")
 #pragma comment (lib, "glew32.lib")
 #pragma comment (lib, "OpenGL32.lib")
 
-#include <chrono>
-#include <thread>
-#include <random>
+// settings
+const unsigned int SCR_WIDTH = 2560;
+const unsigned int SCR_HEIGHT = 1440;
 
-unsigned int SCR_WIDTH = 800;
-unsigned int SCR_HEIGHT = 600;
+auto t_start = std::chrono::high_resolution_clock::now();
 
-bool rotateLight = true;
+Camera* pCamera;
+std::unique_ptr<Mesh> floorObj, cubeObj;
+std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, starFishObj, bubbleObj;
+float timeAcceleration = 0.1f;
+glm::vec3 zrotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
-GLuint ProjMatrixLocation, ViewMatrixLocation, WorldMatrixLocation;
-Camera* pCamera = nullptr;
-multimap<float, glm::vec3> sortedMap;
-void Cleanup()
-{
-    delete pCamera;
-}
-
-// Function to draw colored border around fish object
 void DrawColoredBorder(Model& fishObjModel, const glm::mat4& fishModel, bool transparent) {
     const glm::vec3 borderColor = glm::vec3(1.0f, 0.0f, 0.0f); // Red color
 
@@ -60,7 +41,6 @@ void DrawColoredBorder(Model& fishObjModel, const glm::mat4& fishModel, bool tra
         borderShader.SetVec4("borderColor", glm::vec4(borderColor, 0.0f));
     }
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    fishObjModel.DrawBorder(borderShader);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
@@ -94,7 +74,6 @@ struct BubbleParams
 
 std::vector<BubbleParams> bubbles;
 
-//// Define parameters for spiral motion
 float verticalSpeed = 0.2f;
 float bubbleTime = 0.0f;
 void generateBubblesParams()
@@ -121,7 +100,6 @@ void generateBubbleParams(int index)
 	bubbles[index].radius = rand() % 10 / 10.0f;
 }
 
-// Define initial position of the bubble
 glm::vec3 bubblePosition;
 
 void resetBubblePosition(int index) {
@@ -130,7 +108,6 @@ void resetBubblePosition(int index) {
     bubbles[index].startTime = 0.0f;
 }
 
-// Function to update the position of the bubble with an offset
 void updateBubblePosition(int index) {
     static std::chrono::steady_clock::time_point lastUpdateTime = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
@@ -160,7 +137,6 @@ void updateBubblePosition(int index) {
 float roiRadius = 5.0f;
 glm::vec3 fishPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 
-// Check if camera is within ROI
 bool IsCameraWithinROI(Camera* camera, const glm::vec3& fishPosition, float roiRadius) {
     // Calculate distance between camera position and fish position
     glm::vec3 cameraPosition = camera->GetPosition();
@@ -168,17 +144,15 @@ bool IsCameraWithinROI(Camera* camera, const glm::vec3& fishPosition, float roiR
     return distance < roiRadius;
 }
 
-// Define global variables to store mouse coordinates
 double mouseX = 0.0;
 double mouseY = 0.0;
 
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void FramebufferSizeCallback(GLFWwindow* window, int width, int height);
+void MouseCallback(GLFWwindow* window, double xpos, double ypos);
+void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 
-// timing
 double deltaTime = 0.0f;	// time between current frame and last frame
 double lastFrame = 0.0f;
 
@@ -221,431 +195,392 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 }
 
 
-//auxiliar fish model
 float fishAngleY = 0.0f;
 float fishAngleZ = 0.0f;
 
 int main(int argc, char** argv)
 {
-    std::string strFullExeFileName = argv[0];
-    std::string strExePath;
-    const size_t last_slash_idx = strFullExeFileName.rfind('\\');
-    if (std::string::npos != last_slash_idx) {
-        strExePath = strFullExeFileName.substr(0, last_slash_idx);
-    }
-
-    // glfw: initialize and configure
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    // glfw window creation
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "AQUARIUM PROJECT", NULL, NULL);
-    if (window == NULL) {
-        std::cout << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, mouse_callback);
-    glfwSetScrollCallback(window, scroll_callback);
-    glfwSetKeyCallback(window, key_callback);
-
-    glewInit();
-
-    // Create Cam
-    pCamera = new Camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.0, 1.0, 3.0));
-
-    // configure global opengl state
-    // -----------------------------
-    glEnable(GL_DEPTH_TEST);
-
-    wchar_t buffer[MAX_PATH];
-    GetCurrentDirectoryW(MAX_PATH, buffer);
-
-    std::wstring executablePath(buffer);
-    std::wstring wscurrentPath = executablePath.substr(0, executablePath.find_last_of(L"\\/"));
-
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-    std::string currentPath = converter.to_bytes(wscurrentPath);
-
-    // build and compile shaders
-    // -------------------------
-    Shader shadowMappingShader("ShadowMapping.vs", "ShadowMapping.fs");
-    Shader shadowMappingDepthShader("ShadowMappingDepth.vs", "ShadowMappingDepth.fs");
-    Shader transparentShader("TransparentObjShader.vs", "TransparentObjShader.fs");
-
-    std::string fishObjFileName = (currentPath + "\\Models\\Fish\\fish.obj");
-    Model fishObjModel(fishObjFileName, false);
-
-    std::string goldFishObjFileName = (currentPath + "\\Models\\Fish2\\fish2.obj");
-    Model goldFishObjModel(goldFishObjFileName, false);
-
-    std::string coralBeautyObjFileName = currentPath + "\\Models\\CoralBeauty\\coralBeauty.obj";
-    Model coralBeautyModel(coralBeautyObjFileName, false);
-
-    Model grayFishModel(currentPath + "\\Models\\GreyFish\\fish.obj", false);
-
-    std::string starfishObjFileName = currentPath + "\\Models\\Starfish\\starFish.obj";
-    Model starfishModel(starfishObjFileName, false);
-
-    Model bubbleModel(currentPath + "\\Models\\Bubble\\bubble.obj", false);
-
-    // load textures
-    // -------------
-    Texture txtr;
-    std::vector<unsigned int> texturePaths;
-
-    unsigned int glassTexture = txtr.CreateTexture(strExePath + "\\Glass.png",
-        0.05f);
-    unsigned int floorTexture = txtr.CreateTexture(strExePath + "\\sand.jpg", 1.0f);
-    texturePaths.push_back(glassTexture);
-    texturePaths.push_back(floorTexture);
-
-
-    unsigned int fishTexture = txtr.CreateTexture(currentPath + "\\Models\\Fish\\fish.jpg", 1.0f);
-    
-    // configure depth map FBO
-    // -----------------------
-	unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
-    unsigned int depthMapFBO;
-    glGenFramebuffers(1, &depthMapFBO);
-    // create depth texture
-    unsigned int depthMap;
-    glGenTextures(1, &depthMap);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    // attach depth texture as FBO's depth buffer
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-    // shader configuration
-    // --------------------
-    shadowMappingShader.Use();
-    shadowMappingShader.SetInt("diffuseTexture", 0);
-    shadowMappingShader.SetInt("shadowMap", 1);
-
-    // lighting info
-    // -------------
-    glm::vec3 lightPos(-2.0f, 4.0f, -1.0f);
-
-    generateBubblesParams();
-
-    while (!glfwWindowShouldClose(window))
-    {
-        
-        float currentFrame = (float)glfwGetTime();
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
-
-        processInput(window);
-        glClearColor(0.5f, 0.5f, 1.0f, 0.5f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        
-        glm::mat4 lightProjection, lightView;
-        glm::mat4 lightSpaceMatrix;
-        float near_plane = 1.0f, far_plane = 7.5f;
-
-        if (rotateLight) {
-            float radius = 2.0f;
-            float time = glfwGetTime();
-            float lightX = cos(time) * radius;
-            float lightZ = sin(time) * radius;
-            lightPos = glm::vec3(lightX, 4.0f, lightZ);
-        }
-
-        lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-        lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
-        lightSpaceMatrix = lightProjection * lightView;
-
-        // render scene from light's point of view
-        shadowMappingDepthShader.Use();
-        shadowMappingDepthShader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
-
-        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-        glClear(GL_DEPTH_BUFFER_BIT);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, floorTexture);
-       
-        glCullFace(GL_BACK);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        shadowMappingShader.Use();
-
-        glm::mat4 projection = pCamera->GetProjectionMatrix();
-        glm::mat4 view = pCamera->GetViewMatrix();
-        shadowMappingShader.SetMat4("projection", projection);
-        shadowMappingShader.SetMat4("view", view);
-        // set light uniforms
-        shadowMappingShader.SetVec3("viewPos", pCamera->GetPosition());
-        shadowMappingShader.SetVec3("lightPos", lightPos);
-        shadowMappingShader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
-        
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, depthMap);
-        glDisable(GL_CULL_FACE);
-
-    	glm::mat4 goldFish = glm::mat4(1.0f);
-
-        goldFish = glm::translate(goldFish, glm::vec3(1.0f, 0.0f, -1.0f));
-        goldFish = glm::rotate(goldFish, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-        goldFish = glm::scale(goldFish, glm::vec3(0.1f, 0.1f, 0.1f));
-        shadowMappingShader.SetMat4("model", goldFish);
-    	goldFishObjModel.Draw(shadowMappingShader);
-
-
-        glm::mat4 coralBeautyModelMatrix = glm::mat4(1.0f);
-        coralBeautyModelMatrix = glm::translate(coralBeautyModelMatrix, glm::vec3(2.0f, 0.0f, -1.0f));
-        coralBeautyModelMatrix = glm::rotate(coralBeautyModelMatrix, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-        coralBeautyModelMatrix = glm::scale(coralBeautyModelMatrix, glm::vec3(0.8f, 0.8f, 0.8f));
-        // Desenează modelul Coral Beauty
-        shadowMappingShader.SetMat4("model", coralBeautyModelMatrix);
-        coralBeautyModel.Draw(shadowMappingShader);
-
-        // Configurare model matrix pentru Starfish
-        glm::mat4 starfishModelMatrix = glm::mat4(1.0f);
-        starfishModelMatrix = glm::translate(starfishModelMatrix, glm::vec3(-1.0f, 0.0f, -1.0f)); // Ajustează poziționarea
-        starfishModelMatrix = glm::scale(starfishModelMatrix, glm::vec3(0.1f, 0.1f, 0.1f)); // Ajustează scalarea
-
-        // Desenează modelul Starfish
-        shadowMappingShader.SetMat4("model", starfishModelMatrix);
-        starfishModel.Draw(shadowMappingShader);
-
-    	fishModel = glm::mat4(1.0f);
-        fishModel = glm::translate(fishModel, fishPosition);
-        //rotate around z-axis
-        fishModel = glm::rotate(fishModel, glm::radians(
-            90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis
-        fishModel = glm::rotate(fishModel, glm::radians(
-            90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
-        fishModel = glm::scale(fishModel, glm::vec3(
-            0.1f, 0.1f, 0.1f
-        )); // Scale uniformly
-        shadowMappingShader.SetMat4("model", fishModel);
-
-
-        // Define animation parameters
-        float time = glfwGetTime(); // Get current time
-        float fishSpeed = 1.0f; // Speed of fish animation
-
-        // Define circle parameters
-        float radius = 8.0f; // Radius of the circular path
-        float angularSpeed = 0.1f; // Angular speed of the fish's movement
-
-         // Number of fishes in the school
-        float spacing = 0.2f; // Spacing between fishes
-
-        // Loop to create the fish school
-        for (int i = 0; i < numGreyFishes;++i) {
-            // Calculate angle for each fish
-            float angle = time * fishSpeed * angularSpeed + i * (2.0f * glm::pi<float>()) / numGreyFishes;
-
-            // Calculate position for each fish along the circular path
-            float newX = sin(angle) * radius; // X-coordinate of the fish's position
-            float newZ = cos(angle) * radius; // Z-coordinate of the fish's position
-
-            // Calculate row and column indices
-            int row = i / 5; // Assuming 5 fishes per row
-            int col = i % 5;
-
-            // Calculate position for each fish
-            float posX = col * spacing;
-            float posY = 0.0f;
-            float posZ = row * spacing;
-
-
-            //calculate new position for bubble
-            glm::vec3 bubbleInitialPos = glm::vec3(posX + newX, 0.0f, posZ + newZ);
-
-            glm::mat4 greyFish = glm::mat4(1.0f); // Reset fish model matrix
-            greyFish = glm::translate(greyFish, glm::vec3(posX + newX, posY, posZ+newZ)); // Update position
-            greyFish = glm::rotate(greyFish, -angle, glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate fish
-            greyFish = glm::scale(greyFish, glm::vec3(0.1f, 0.1f, 0.1f)); // Scale fish
-            shadowMappingShader.SetMat4("model", greyFish); // Pass updated model matrix to shader
-            grayFishModel.Draw(shadowMappingShader); // Draw fish object
-
-            bubbles[i].newPos = bubbleInitialPos;
-
-        }
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, fishTexture);
-        if (isInFishPerspective)
-        {
-            //Apply fishAngleY to fish model
-            fishModel = glm::rotate(fishModel, glm::radians(fishAngleZ), glm::vec3(0.0f, 0.0f, 1.0f));
-            fishModel = glm::rotate(fishModel, glm::radians(fishAngleY), glm::vec3(0.0f, 1.0f, 0.0f));
-        }
-        shadowMappingShader.SetMat4("model", fishModel);
-        fishObjModel.Draw(shadowMappingShader);
-
-        
-    	if (IsCameraWithinROI(pCamera, fishPosition, roiRadius) && !isInFishPerspective) 
-        {
-    		DrawColoredBorder(fishObjModel,  fishModel, isTransparent);
-        }
-
-        TransparentObjects transparentObjects;
-
-        //render all bubbles
-        for (int i = 0; i < numBubbles; i++)
-        {
-        	//shadowMappingShader.SetFloat("alpha", 0.5f);
-			glm::mat4 bubbleModelMatrix = glm::mat4(1.0f);
-            updateBubblePosition(i);
-			bubbleModelMatrix = glm::translate(bubbleModelMatrix, bubbles[i].position);
-			bubbleModelMatrix = glm::scale(bubbleModelMatrix, glm::vec3(bubbles[i].size, bubbles[i].size, bubbles[i].size));
-            transparentShader.SetMat4("model", bubbleModelMatrix);
-			bubbleModel.Draw(transparentShader);
-		}
-        
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
-
-    delete pCamera;
-
-    glfwTerminate();
-    return 0;
-}
-
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-void processInput(GLFWwindow* window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-    {
-        pCamera->ProcessKeyboard(FORWARD, (float)deltaTime);
-        if (isInFishPerspective) {
-            fishPosition += glm::vec3(0.0f, 0.0f, 0.007f);
-        }
-    }
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-    {
-        if (!isInFishPerspective)
-        {
-            pCamera->ProcessKeyboard(BACKWARD, (float)deltaTime);
-        }
-    }
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-    {
-        pCamera->ProcessKeyboard(LEFT, (float)deltaTime);
-
-    }
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-        pCamera->ProcessKeyboard(RIGHT, (float)deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS)
-        pCamera->ProcessKeyboard(UP, (float)deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS)
-        pCamera->ProcessKeyboard(DOWN, (float)deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
-        rotateLight = true;
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        rotateLight = false;
-
-    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
-        int width, height;
-        glfwGetWindowSize(window, &width, &height);
-        pCamera->Reset(width, height);
-
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    {
-    	if (isInFishPerspective)
-    	{
-    		fishPosition += glm::vec3(0.0f, 0.0f, 0.007f);
-            //modify position with respect fishAngleY and fishAngleZ
-            
-
-            pCamera->ProcessKeyboard(FORWARD, (float)deltaTime);
-		}
-	}
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    {
-        if (isInFishPerspective)
-        {
-            //fishPosition += glm::vec3(0.007f, 0.0f, 0.0f);
-            if (fishAngleZ < 90.0f)
-            {
-                fishAngleZ += 0.1f;
-			}
-        }
+	glfwInit();
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "blip blop Simulator", NULL, NULL);
+
+	if (window == NULL) {
+		std::cout << "Failed to create GLFW window" << std::endl;
+		glfwTerminate();
+		return -1;
 	}
 
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    {
-    	if (isInFishPerspective)
-    	{
-            if (fishAngleZ > -90.0f)
-            {
-            	fishAngleZ -= 0.1f;
-			}
-		}
-    }
+	glfwMakeContextCurrent(window);
+	glfwSetFramebufferSizeCallback(window, FramebufferSizeCallback);
+	glfwSetCursorPosCallback(window, MouseCallback);
+	glfwSetScrollCallback(window, ScrollCallback);
+	glfwSetKeyCallback(window, KeyCallback);
 
-    //go up with space
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-    {
-    	if (isInFishPerspective)
-    	{
-    		//fishPosition += glm::vec3(0.0f, 0.007f, 0.0f);
-            fishAngleY += 0.1f;
-		}
-	}
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    //go down with left shift
-	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+	glewInit();
+
+	pCamera = new Camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.0, 20, 0));
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//glEnable(GL_CULL_FACE);
+	glEnable(GL_COLOR_MATERIAL);
+	glDisable(GL_LIGHTING);
+	glFrontFace(GL_CCW);
+	//glCullFace(GL_BACK);
+
+	Shader shadowMappingShader("../Shaders/ShadowMapping.vs", "../Shaders/ShadowMapping.fs");
+	Shader shadowMappingDepthShader("../Shaders/ShadowMappingDepth.vs", "../Shaders/ShadowMappingDepth.fs");
+	Shader borderShader("../Shaders/Border.vs", "../Shaders/Border.fs");
+	const unsigned int SHADOW_WIDTH = 4000, SHADOW_HEIGHT = 4000;
+	unsigned int depthMapFBO;
+	glGenFramebuffers(1, &depthMapFBO);
+	// create depth texture
+	unsigned int depthMap;
+	glGenTextures(1, &depthMap);
+	glBindTexture(GL_TEXTURE_2D, depthMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+	float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// shader configuration
+	shadowMappingShader.Use();
+	shadowMappingShader.SetInt("diffuseTexture", 0);
+	shadowMappingShader.SetInt("shadowMap", 1);
+
+	LoadObjects();
+
+	glm::vec3 lightPos(-2.0f, 14.0f, -1.0f);
+	float hue = 1.0;
+	float floorHue = 0.9;
+	bool rotateLight = true;
+	generateBubblesParams();
+
+	while (!glfwWindowShouldClose(window))
 	{
-		if (isInFishPerspective)
-		{
-			//fishPosition += glm::vec3(0.0f, -0.007f, 0.0f);
-			fishAngleY -= 0.1f;
+		// per-frame time logic
+		// --------------------
+		float currentFrame = (float)glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+
+		// input
+		// -----
+		ProcessKeyboard(window);
+
+		// render
+		// ------
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		// 1. render depth of scene to texture (from light's perspective)
+		glm::mat4 lightProjection, lightView;
+		glm::mat4 lightSpaceMatrix;
+		float near_plane = 5.0f, far_plane = 500.f;
+
+		if (rotateLight) {
+			float radius = 2.0f;
+			float time = glfwGetTime();
+			float lightX = cos(time) * radius;
+			float lightZ = sin(time) * radius;
+			lightPos = glm::vec3(lightX, 14.0f, lightZ);
 		}
+
+		lightProjection = glm::ortho(-500.0f, 500.0f, -500.0f, 500.0f, near_plane, far_plane);
+		lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+		lightSpaceMatrix = lightProjection * lightView;
+
+		// render scene from light's point of view
+		shadowMappingDepthShader.Use();
+		shadowMappingDepthShader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
+
+		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+		glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		RenderScene(shadowMappingDepthShader);
+		glActiveTexture(GL_TEXTURE0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		// reset viewport
+		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// 2. render scene as normal using the generated depth/shadow map 
+		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		shadowMappingShader.Use();
+		glm::mat4 projection = pCamera->GetProjectionMatrix();
+		glm::mat4 view = pCamera->GetViewMatrix();
+		shadowMappingShader.SetMat4("projection", projection);
+		shadowMappingShader.SetMat4("view", view);
+		shadowMappingShader.SetFloat("hue", floorHue);
+
+
+		// set light uniforms
+		shadowMappingShader.SetVec3("viewPos", pCamera->GetPosition());
+		shadowMappingShader.SetVec3("lightPos", lightPos);
+		shadowMappingShader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
+		glActiveTexture(GL_TEXTURE0);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, depthMap);
+		glDisable(GL_CULL_FACE);
+		RenderScene(shadowMappingShader);
+
+		/*float sunPassingTime = currentFrame * timeAcceleration;
+		lightPos = glm::vec3(0.0f, 20 * sin(sunPassingTime), 50 * cos(sunPassingTime));*/
+		//hue = std::max<float>(sin(sunPassingTime), 0.1);
+		//floorHue = std::max<float>(sin(sunPassingTime), 0.6);
+
+		hue = 1;
+		floorHue = 1;
+		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+	}
+
+	glfwTerminate();
+	return 0;
+}
+
+void ProcessKeyboard(GLFWwindow* window)
+{
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, true);
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		pCamera->ProcessKeyboard(FORWARD, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		pCamera->ProcessKeyboard(BACKWARD, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		pCamera->ProcessKeyboard(LEFT, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		pCamera->ProcessKeyboard(RIGHT, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+		pCamera->ProcessKeyboard(UP, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+		pCamera->ProcessKeyboard(DOWN, deltaTime);
+
+
+	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+		int width, height;
+		glfwGetWindowSize(window, &width, &height);
+		pCamera->Reset(width, height);
+	}
+}
+
+void LoadObjects()
+{
+	// Texture loading
+	Texture floorTexture("../Models/Floor/FloorTexture.jpg");
+	Texture cubeTexture("../Models/Cube/glass.png");
+	const float floorSize = 5000.0f;
+	std::vector<Vertex> floorVertices({
+		// positions            // normals           // texcoords
+	   { floorSize, -2.0f,  floorSize,  0.0f, 1.0f, 0.0f,    floorSize,  0.0f},
+	   {-floorSize, -2.0f,  floorSize,  0.0f, 1.0f, 0.0f,    0.0f,  0.0f},
+	   {-floorSize, -2.0f, -floorSize,  0.0f, 1.0f, 0.0f,    0.0f, floorSize},
+
+	   { floorSize, -2.0f,  floorSize,  0.0f, 1.0f, 0.0f,    floorSize,  0.0f},
+	   {-floorSize, -2.0f, -floorSize,  0.0f, 1.0f, 0.0f,    0.0f, floorSize},
+	   { floorSize, -2.0f, -floorSize,  0.0f, 1.0f, 0.0f,    floorSize, floorSize}
+		});
+
+	std::vector<Vertex> cubeVertices({
+	Vertex(-12.5f, -12.5f, -12.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f),
+	Vertex(12.5f, -12.5f, -12.5f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f),
+	Vertex(12.5f, 12.5f, -12.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f),
+	Vertex(12.5f, 12.5f, -12.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f),
+	Vertex(-12.5f, 12.5f, -12.5f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f),
+	Vertex(-12.5f, -12.5f, -12.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f),
+
+	// Front face
+	Vertex(-12.5f, -12.5f, 12.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f),
+	Vertex(12.5f, -12.5f, 12.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f),
+	Vertex(12.5f, 12.5f, 12.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f),
+	Vertex(12.5f, 12.5f, 12.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f),
+	Vertex(-12.5f, 12.5f, 12.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f),
+	Vertex(-12.5f, -12.5f, 12.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f),
+
+	// Left face
+	Vertex(-12.5f, 12.5f, 12.5f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f),
+	Vertex(-12.5f, 12.5f, -12.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f),
+	Vertex(-12.5f, -12.5f, -12.5f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f),
+	Vertex(-12.5f, -12.5f, -12.5f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f),
+	Vertex(-12.5f, -12.5f, 12.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f),
+	Vertex(-12.5f, 12.5f, 12.5f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f),
+
+	// Right face
+	Vertex(12.5f, 12.5f, 12.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f),
+	Vertex(12.5f, -12.5f, -12.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f),
+	Vertex(12.5f, 12.5f, -12.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f),
+	Vertex(12.5f, 12.5f, -12.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f),
+	Vertex(12.5f, 12.5f, 12.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f),
+	Vertex(12.5f, -12.5f, 12.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f) });
+
+	stbi_set_flip_vertically_on_load(false);
+
+
+
+	// Objects loading
+	cubeObj = std::make_unique<Mesh>(cubeVertices, std::vector<unsigned int>(), std::vector<Texture>{cubeTexture});
+	fishObj = std::make_unique<Model>("../Models/Fish/fish.obj", false);
+	goldFishObj = std::make_unique<Model>("../Models/GoldFish/fish2.obj", false);
+	coralBeautyFishObj = std::make_unique<Model>("../Models/CoralBeauty/coralBeauty.obj", false);
+	grayFishObj = std::make_unique<Model>("../Models/GreyFish/fish.obj", false);
+	starFishObj = std::make_unique<Model>("../Models/StarFish/starFish.obj", false);
+	bubbleObj = std::make_unique<Model>("../Models/Bubble/bubble.obj", false);
+	floorObj = std::make_unique<Mesh>(floorVertices, std::vector<unsigned int>(), std::vector<Texture>{floorTexture});
+}
+
+void RenderScene(Shader& shader)
+{
+	glm::mat4 goldFish = glm::mat4(1.0f);
+
+	goldFish = glm::translate(goldFish, glm::vec3(10.0f, 3.0f, -1.0f));
+	goldFish = glm::rotate(goldFish, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+	//goldFish = glm::scale(goldFish, glm::vec3(0.1f, 0.1f, 0.1f));
+	goldFishObj->RenderModel(shader, goldFish);
+
+
+	glm::mat4 coralBeautyModelMatrix = glm::mat4(1.0f);
+	coralBeautyModelMatrix = glm::translate(coralBeautyModelMatrix, glm::vec3(2.0f, 3.0f, -1.0f));
+	coralBeautyModelMatrix = glm::rotate(coralBeautyModelMatrix, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+	coralBeautyModelMatrix = glm::scale(coralBeautyModelMatrix, glm::vec3(0.8f, 0.8f, 0.8f));
+	// Desenează modelul Coral Beauty
+	coralBeautyFishObj->RenderModel(shader, coralBeautyModelMatrix);
+
+	// Configurare model matrix pentru Starfish
+	glm::mat4 starfishModelMatrix = glm::mat4(1.0f);
+	starfishModelMatrix = glm::translate(starfishModelMatrix, glm::vec3(-1.0f, 0.0f, -1.0f)); // Ajustează poziționarea
+	starfishModelMatrix = glm::scale(starfishModelMatrix, glm::vec3(0.1f, 0.1f, 0.1f)); // Ajustează scalarea
+
+	// Desenează modelul Starfish
+	starFishObj->RenderModel(shader, starfishModelMatrix);
+
+	fishModel = glm::mat4(1.0f);
+	fishModel = glm::translate(fishModel, fishPosition);
+	//rotate around z-axis
+	fishModel = glm::rotate(fishModel, glm::radians(
+		90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis
+	fishModel = glm::rotate(fishModel, glm::radians(
+		90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
+	fishModel = glm::scale(fishModel, glm::vec3(
+		0.1f, 0.1f, 0.1f
+	)); // Scale uniformly
+
+
+	// Define animation parameters
+	float time = glfwGetTime(); // Get current time
+	float fishSpeed = 1.0f; // Speed of fish animation
+
+	// Define circle parameters
+	float radius = 8.0f; // Radius of the circular path
+	float angularSpeed = 0.1f; // Angular speed of the fish's movement
+
+	// Number of fishes in the school
+	float spacing = 0.2f; // Spacing between fishes
+
+	// Loop to create the fish school
+	for (int i = 0; i < numGreyFishes; ++i) {
+		// Calculate angle for each fish
+		float angle = time * fishSpeed * angularSpeed + i * (2.0f * glm::pi<float>()) / numGreyFishes;
+
+		// Calculate position for each fish along the circular path
+		float newX = sin(angle) * radius; // X-coordinate of the fish's position
+		float newZ = cos(angle) * radius; // Z-coordinate of the fish's position
+
+		// Calculate row and column indices
+		int row = i / 5; // Assuming 5 fishes per row
+		int col = i % 5;
+
+		// Calculate position for each fish
+		float posX = col * spacing;
+		float posY = 0.0f;
+		float posZ = row * spacing;
+
+
+		//calculate new position for bubble
+		glm::vec3 bubbleInitialPos = glm::vec3(posX + newX, 0.0f, posZ + newZ);
+
+		glm::mat4 greyFish = glm::mat4(1.0f); // Reset fish model matrix
+		greyFish = glm::translate(greyFish, glm::vec3(posX + newX, posY, posZ + newZ)); // Update position
+		greyFish = glm::rotate(greyFish, -angle, glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate fish
+		greyFish = glm::scale(greyFish, glm::vec3(0.1f, 0.1f, 0.1f)); // Scale fish
+		grayFishObj->RenderModel(shader, greyFish); // Draw fish object.Draw(shadowMappingShader); // Draw fish object
+
+		bubbles[i].newPos = bubbleInitialPos;
+
 	}
 
 
+	if (isInFishPerspective)
+	{
+		//Apply fishAngleY to fish model
+		fishModel = glm::rotate(fishModel, glm::radians(fishAngleZ), glm::vec3(0.0f, 0.0f, 1.0f));
+		fishModel = glm::rotate(fishModel, glm::radians(fishAngleY), glm::vec3(0.0f, 1.0f, 0.0f));
+	}
+	fishObj->RenderModel(shader, fishModel);
+
+
+	/*if (IsCameraWithinROI(pCamera, fishPosition, roiRadius) && !isInFishPerspective)
+	{
+		DrawColoredBorder(fishObj, fishModel, isTransparent);
+	}*/
+
+	glEnable(GL_CULL_FACE);
+
+	for (int i = 0; i < numBubbles; i++)
+	{
+
+		//shadowMappingShader.SetFloat("alpha", 0.5f);
+		glm::mat4 bubbleModelMatrix = glm::mat4(1.0f);
+		updateBubblePosition(i);
+		bubbleModelMatrix = glm::translate(bubbleModelMatrix, bubbles[i].position);
+		bubbleModelMatrix = glm::scale(bubbleModelMatrix, glm::vec3(bubbles[i].size, bubbles[i].size, bubbles[i].size));
+		bubbleObj->RenderModel(shader, bubbleModelMatrix);
+	}
+	glDisable(GL_CULL_FACE);
+	floorObj->RenderMesh(shader);
+	cubeObj->RenderMesh(shader);
+}
+
+
+void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	if (key == GLFW_KEY_P && action == GLFW_PRESS)
+	{
+		timeAcceleration += 0.05f;
+	}
 
 }
 
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+void FramebufferSizeCallback(GLFWwindow* window, int width, int height)
 {
-    // make sure the viewport matches the new window dimensions; note that width and 
-    // height will be significantly larger than specified on retina displays.
-    pCamera->Reshape(width, height);
-    //make other adjustments
-    SCR_WIDTH = width;
-    SCR_HEIGHT = height;
+	pCamera->Reshape(width, height);
 }
 
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+void MouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
-    pCamera->MouseControl((float)xpos, (float)ypos);
-    mouseX = xpos;
-    mouseY = ypos;
+	pCamera->MouseControl((float)xpos, (float)ypos);
 }
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yOffset)
+void ScrollCallback(GLFWwindow* window, double xoffset, double yOffset)
 {
-    pCamera->ProcessMouseScroll((float)yOffset);
+	pCamera->ProcessMouseScroll((float)yOffset);
 }
