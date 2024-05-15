@@ -22,7 +22,7 @@ auto t_start = std::chrono::high_resolution_clock::now();
 
 Camera* pCamera;
 std::unique_ptr<Mesh> floorObj, cubeObj;
-std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, starFishObj, bubbleObj;
+std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, starFishObj, bubbleObj, sandDune;
 float timeAcceleration = 0.1f;
 glm::vec3 zrotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
@@ -455,11 +455,17 @@ void LoadObjects()
 	grayFishObj = std::make_unique<Model>("../Models/GreyFish/fish.obj", false);
 	starFishObj = std::make_unique<Model>("../Models/StarFish/starFish.obj", false);
 	bubbleObj = std::make_unique<Model>("../Models/Bubble/bubble.obj", false);
+	sandDune = std::make_unique<Model>("../Models/SandDune/sandDune.obj", false);
 	floorObj = std::make_unique<Mesh>(floorVertices, std::vector<unsigned int>(), std::vector<Texture>{floorTexture});
 }
 
 void RenderScene(Shader& shader)
 {
+	glm::mat4 sandDuneModelMatrix = glm::mat4(1.0f);
+	sandDuneModelMatrix = glm::translate(sandDuneModelMatrix, glm::vec3(0.0f, -12.f, 0.0f)); 
+	sandDuneModelMatrix = glm::scale(sandDuneModelMatrix, glm::vec3(0.025f, 0.1f, 0.025f));
+	sandDune->RenderModel(shader, sandDuneModelMatrix);
+
 	glm::mat4 goldFish = glm::mat4(1.0f);
 
 	goldFish = glm::translate(goldFish, glm::vec3(10.0f, 3.0f, -1.0f));

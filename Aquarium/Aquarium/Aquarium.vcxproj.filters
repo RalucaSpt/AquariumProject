@@ -74,5 +74,11 @@
     <None Include="..\Shaders\ShadowMappingDepth.vs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="sandDune.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="sandDune.fs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
