@@ -1,11 +1,5 @@
 #pragma once
-#include <cmath>
-#include <fwd.hpp>
-#include <vec3.hpp>
-#include <math.h> 
-#include <ext/matrix_clip_space.hpp>
-#include <ext/matrix_transform.hpp>
-#include <GL/glew.h>
+#include <GLM.hpp>
 
 enum ECameraMovementType
 {
@@ -18,6 +12,12 @@ enum ECameraMovementType
     DOWN
 };
 
+enum CameraMode {
+    FirstPerson,
+    ThirdPerson,
+    FreeLook
+};
+
 class Camera
 {
     private:
@@ -28,25 +28,27 @@ class Camera
         const float PITCH = 0.0f;
         const float FOV = 45.0f;
         glm::vec3 startPosition;
+        CameraMode mode;
 
     public:
         Camera(const int width, const int height, const glm::vec3& position);
+
+        glm::vec3 GetPosition();
+
         void Set(const int width, const int height, const glm::vec3& position);
-
 		void Reset(const int width, const int height);
-
 		void Reshape(int windowWidth, int windowHeight);
-
-        const glm::vec3 GetPosition() const;
 
         const glm::mat4 GetViewMatrix() const;
         const glm::mat4 GetProjectionMatrix() const;
 
         void ProcessKeyboard(ECameraMovementType direction, float deltaTime);
-
         void MouseControl(float xPos, float yPos);
-
         void ProcessMouseScroll(float yOffset);
+        void SetCameraMode(CameraMode mode);
+        CameraMode GetCameraMode();
+        void SetRotation(glm::vec3 rotation);
+        glm::vec3 GetRotation();
 
         void SetPosition(const glm::vec3 vec);
         void SetYaw(float yaw);
@@ -62,7 +64,6 @@ class Camera
         const float mouseSensitivity = 0.1f;
 
         // Perspective properties
-        float roll;
         float zNear;
         float zFar;
         float FoVy;
@@ -70,6 +71,7 @@ class Camera
         int height;
         bool isPerspective;
 
+        glm::vec3 rotation;
         glm::vec3 position;
         glm::vec3 forward;
         glm::vec3 right;
@@ -79,7 +81,7 @@ class Camera
         // Euler Angles
         float yaw;
         float pitch;
-
+        float roll;
         bool bFirstMouseMove = true;
         float lastX = 0.f, lastY = 0.f;
 

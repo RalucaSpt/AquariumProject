@@ -1,10 +1,22 @@
+#include <iostream>
 #include "Camera.h"
 
+#include <gtc/matrix_transform.hpp>
+#include <GL/glew.h>
+
 Camera::Camera(const int width, const int height, const glm::vec3& position)
+	: startPosition(position)
 {
-    startPosition = position;
-    Set(width, height, position);
+
+	Set(width, height, position);
+	mode = CameraMode::FreeLook;
 }
+
+glm::vec3 Camera::GetPosition()
+{
+	return position;
+}
+
 
 void Camera::Set(const int width, const int height, const glm::vec3& position)
 {
@@ -42,11 +54,6 @@ void Camera::Reshape(int windowWidth, int windowHeight)
     glViewport(0, 0, windowWidth, windowHeight);
 }
 
-const glm::vec3 Camera::GetPosition() const
-{
-	return position;
-}
-
 const glm::mat4 Camera::GetViewMatrix() const
 {
     // Returns the View Matrix
@@ -72,25 +79,55 @@ const glm::mat4 Camera::GetProjectionMatrix() const
 void Camera::ProcessKeyboard(ECameraMovementType direction, float deltaTime)
 {
 	float velocity = (float)(cameraSpeedFactor * deltaTime);
-	switch (direction) {
-	case ECameraMovementType::FORWARD:
-		position += forward * velocity;
-		break;
-	case ECameraMovementType::BACKWARD:
-		position -= forward * velocity;
-		break;
-	case ECameraMovementType::LEFT:
-		position -= right * velocity;
-		break;
-	case ECameraMovementType::RIGHT:
-		position += right * velocity;
-		break;
-	case ECameraMovementType::UP:
-		position += up * velocity;
-		break;
-	case ECameraMovementType::DOWN:
-		position -= up * velocity;
-		break;
+	if (mode == FreeLook)
+	{
+		switch (direction) {
+		case ECameraMovementType::FORWARD:
+			position += forward * velocity;
+			break;
+		case ECameraMovementType::BACKWARD:
+			position -= forward * velocity;
+			break;
+		case ECameraMovementType::LEFT:
+			position -= right * velocity;
+			break;
+		case ECameraMovementType::RIGHT:
+			position += right * velocity;
+			break;
+		case ECameraMovementType::UP:
+			position += up * velocity;
+			break;
+		case ECameraMovementType::DOWN:
+			position -= up * velocity;
+			break;
+		}
+	}
+	else
+	{
+		switch (direction) {
+		case ECameraMovementType::FORWARD:
+			position += forward * velocity;
+			break;
+		case ECameraMovementType::BACKWARD:
+			position -= forward * velocity;
+			break;
+		case ECameraMovementType::LEFT:
+			position -= right * velocity;
+			rotation.z += 0.6f;
+			break;
+		case ECameraMovementType::RIGHT:
+			position += right * velocity;
+			rotation.z -= 0.6f;
+			break;
+		case ECameraMovementType::UP:
+			position += up * velocity;
+			rotation.x += 0.6f;
+			break;
+		case ECameraMovementType::DOWN:
+			position -= up * velocity;
+			rotation.x -= 0.6f;
+			break;
+		}
 	}
 }
 
@@ -127,6 +164,54 @@ void Camera::ProcessMouseScroll(float yOffset)
 		FoVy = 90.0f;
 }
 
+void Camera::SetCameraMode(CameraMode mode)
+{
+	this->mode = mode;
+}
+
+CameraMode Camera::GetCameraMode()
+{
+	return this->mode;
+}
+
+void Camera::SetRotation(glm::vec3 rotation)
+{
+	this->rotation = rotation;
+}
+
+glm::vec3 Camera::GetRotation()
+{
+	return rotation;
+}
+
+void Camera::ProcessMouseMovement(float xOffset, float yOffset, bool constrainPitch)
+{
+	yaw += xOffset;
+	pitch += yOffset;
+
+	
+	if (constrainPitch) {
+		if (pitch > 89.0f)
+			pitch = 89.0f;
+		if (pitch < -89.0f)
+			pitch = -89.0f;
+	}
+
+	UpdateCameraVectors();
+}
+
+void Camera::UpdateCameraVectors()
+{
+	// Calculate the new forward vector
+	this->forward.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	this->forward.y = sin(glm::radians(pitch));
+	this->forward.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	this->forward = glm::normalize(this->forward);
+	// Also re-calculate the Right and Up vector
+	right = glm::normalize(glm::cross(forward, worldUp));  // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+	up = glm::normalize(glm::cross(right, forward));
+}
+
 void Camera::SetPosition(const glm::vec3 vec)
 {
 	position = vec;
@@ -146,36 +231,4 @@ void Camera::SetPitch(float pitch)
 void Camera::SetRoll(float x)
 {
 	this->roll = x;
-}
-
-void Camera::ProcessMouseMovement(float xOffset, float yOffset, bool constrainPitch)
-{
-	yaw += xOffset;
-	pitch += yOffset;
-
-	//std::cout << "yaw = " << yaw << std::endl;
-	//std::cout << "pitch = " << pitch << std::endl;
-
-	// Avem grijã sã nu ne dãm peste cap
-	if (constrainPitch) {
-		if (pitch > 89.0f)
-			pitch = 89.0f;
-		if (pitch < -89.0f)
-			pitch = -89.0f;
-	}
-
-	// Se modificã vectorii camerei pe baza unghiurilor Euler
-	UpdateCameraVectors();
-}
-
-void Camera::UpdateCameraVectors()
-{
-	// Calculate the new forward vector
-	this->forward.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	this->forward.y = sin(glm::radians(pitch));
-	this->forward.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	this->forward = glm::normalize(this->forward);
-	// Also re-calculate the Right and Up vector
-	right = glm::normalize(glm::cross(forward, worldUp));  // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
-	up = glm::normalize(glm::cross(right, forward));
 }
