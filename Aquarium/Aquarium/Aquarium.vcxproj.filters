@@ -42,9 +42,6 @@
     <ClCompile Include="Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TransparentObjects.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Bubble.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -77,12 +74,6 @@
     <ClInclude Include="Vertex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TextureStruct.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TransparentObjects.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Bubble.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -105,12 +96,6 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="Border.fs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="TransparentObjShader.fs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="TransparentObjShader.vs">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

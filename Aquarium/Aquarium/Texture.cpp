@@ -1,28 +1,30 @@
 #include "Texture.h"
-//#ifndef STB_IMAGE_IMPLEMENTATION
-//#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-//#endif
-unsigned Texture::CreateTexture(const std::string& strTexturePath, float alpha)
+
+#include <stb_image.h>
+#include <GL/glew.h>
+#include <iostream>
+
+Texture::Texture(const std::string& strTexturePath)
+	: path(strTexturePath)
 {
 	unsigned int textureId = -1;
 
 	// load image, create texture and generate mipmaps
 	int width, height, nrChannels;
 	stbi_set_flip_vertically_on_load(false); // tell stb_image.h to flip loaded texture's on the y-axis.
-
-
-	unsigned char* data = stbi_load(strTexturePath.c_str(), &width, &height, &nrChannels, STBI_rgb_alpha); // Ensure loading with alpha channel
+	unsigned char* data = stbi_load(strTexturePath.c_str(), &width, &height, &nrChannels, 0);
 	if (data) {
+		GLenum format;
+		if (nrChannels == 1)
+			format = GL_RED;
+		else if (nrChannels == 3)
+			format = GL_RGB;
+		else if (nrChannels == 4)
+			format = GL_RGBA;
+
 		glGenTextures(1, &textureId);
 		glBindTexture(GL_TEXTURE_2D, textureId);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); // Use GL_RGBA for alpha channel
-
-		// Adjust transparency by modifying alpha channel
-		for (int i = 0; i < width * height * 4; i += 4) {
-			data[i + 3] = static_cast<unsigned char>(alpha * 255); // Update alpha channel
-		}
-
+		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
 		// set the texture wrapping parameters
@@ -32,43 +34,34 @@ unsigned Texture::CreateTexture(const std::string& strTexturePath, float alpha)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	}
-	else {
+	else
+	{
 		std::cout << "Failed to load texture: " << strTexturePath << std::endl;
 	}
+
 	stbi_image_free(data);
-	m_textureID = textureId;
-	m_texturePath = strTexturePath;
-	m_textureType = "texture_diffuse";
-
-	return textureId;
+	id = textureId;
 }
 
-unsigned Texture::GetTextureID()
+Texture::Texture(std::vector<std::string> faces)
 {
-	return m_textureID;
-}
-
-void Texture::SetTextureID(unsigned textureID)
-{
-	m_textureID = textureID;
-}
-
-std::string Texture::GetTextureType()
-{
-	return m_textureType;
-}
-
-void Texture::SetTextureType(std::string textureType)
-{
-	m_textureType = textureType;
-}
-
-std::string Texture::GetTexturePath()
-{
-	return m_texturePath;
-}
-
-void Texture::SetTexturePath(std::string texturePath)
-{
-	m_texturePath = texturePath;
+	unsigned int textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+	int width, height, nrChannels;
+	for (unsigned int i = 0; i < faces.size(); i++)
+	{
+		unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+		if (data)
+		{
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		}
+		stbi_image_free(data);
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	id = textureID;
 }
