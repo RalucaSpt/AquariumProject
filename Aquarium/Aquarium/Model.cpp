@@ -230,21 +230,33 @@
 #include "stb_image.h"
 #endif
 
+Model::Model(string const& path, bool bSmoothNormals, glm::vec3 position, std::string texturePath, bool gamma) : gammaCorrection(gamma)
+{
+    // this->position = position;
+    // textures_loaded.emplace_back(Texture(texturePath));
+    loadModel(path, bSmoothNormals);
+}
+
 Model::Model(string const& path, bool bSmoothNormals, bool gamma) : gammaCorrection(gamma)
 {
     loadModel(path, bSmoothNormals);
 }
 
-void Model::Draw(Shader& shader)
+
+void Model::RenderModel(Shader& shader, const glm::mat4& model)
 {
     for (unsigned int i = 0; i < meshes.size(); i++)
-        meshes[i].Draw(shader);
+        meshes[i].RenderMesh(shader, model);
 }
 
-void Model::DrawBorder(Shader& shader)
+void Model::RenderModelMesh(Shader& shader, glm::mat4& model, int meshID, glm::mat4& meshModel)
 {
-	for (unsigned int i = 0; i < meshes.size(); i++)
-		meshes[i].DrawBorder(shader);
+
+    for (unsigned int i = 0; i < meshes.size(); i++)
+    {
+        if (i == meshID) meshes[i].RenderMesh(shader, meshModel);
+        else meshes[i].RenderMesh(shader, model);
+    }
 }
 
 void Model::loadModel(string const& path, bool bSmoothNormals)
@@ -288,7 +300,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
     // data to fill
     vector<Vertex> vertices;
     vector<unsigned int> indices;
-    vector<TextureStruct> textures;
+    vector<Texture> textures;
 
     // walk through each of the mesh's vertices
     for (unsigned int i = 0; i < mesh->mNumVertices; i++)
@@ -307,9 +319,6 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
             vector.y = mesh->mNormals[i].y;
             vector.z = mesh->mNormals[i].z;
             vertex.Normal = vector;
-        }
-        else {
-           int j = 0;
         }
         // texture coordinates
         if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
@@ -354,25 +363,25 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
     // normal: texture_normalN
 
     // 1. diffuse maps
-    vector<TextureStruct> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
+    vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
     textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
     // 2. specular maps
-    vector<TextureStruct> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
+    vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
     textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
     // 3. normal maps
-    std::vector<TextureStruct> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
+    std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
     textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
     // 4. height maps
-    std::vector<TextureStruct> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
+    std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
     textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
     // return a mesh object created from the extracted mesh data
     return Mesh(vertices, indices, textures);
 }
 
-vector<TextureStruct> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, string typeName)
+vector<Texture> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, string typeName)
 {
-    vector<TextureStruct> textures;
+    vector<Texture> textures;
     for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
     {
         aiString str;
@@ -390,7 +399,7 @@ vector<TextureStruct> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType
         }
         if (!skip)
         {   // if texture hasn't been loaded already, load it
-            TextureStruct texture;
+            Texture texture;
             texture.id = TextureFromFile(str.C_Str(), this->directory);
             //remove until last slash
 
@@ -406,13 +415,7 @@ vector<TextureStruct> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType
 unsigned int TextureFromFile(const char* path, const string& directory, bool gamma)
 {
     string filename = string(path);
-
-    //remove until last slash
-    string::size_type slash = directory.find_last_of('\\');
-    string dir = directory.substr(0, slash);
-
-
-    filename = dir + '\\' + filename;
+    filename = directory + '/' + filename;
 
     unsigned int textureID;
     glGenTextures(1, &textureID);
