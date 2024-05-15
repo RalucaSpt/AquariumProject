@@ -10,13 +10,11 @@
 class Shader
 {
 public:
-    // constructor generates the shaderStencilTesting on the fly
-    // ------------------------------------------------------------------------
+   
     Shader(const char* vertexPath, const char* fragmentPath);
     ~Shader();
 
-    // activate the shaderStencilTesting
-    // ------------------------------------------------------------------------
+   
     void Use() const;
 
     unsigned int GetID() const;
