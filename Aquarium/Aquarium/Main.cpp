@@ -26,56 +26,68 @@ std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, st
 float timeAcceleration = 0.1f;
 glm::vec3 zrotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
+void FramebufferSizeCallback(GLFWwindow* window, int width, int height);
+void MouseCallback(GLFWwindow* window, double xpos, double ypos);
+void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+void ProcessKeyboard(GLFWwindow* window);
+
+void LoadObjects();
+void RenderScene(Shader& shader);
+
+
+double deltaTime = 0.0f;
+double lastFrame = 0.0f;
+int m_mapWidth, m_mapHeight, m_mapChannels, m_indicesRez;
+std::vector<float> m_vertices;
+int numGreyFishes = 20;
+int numBubbles = 20;
+struct BubbleParams
+{
+	glm::vec3 position;
+	glm::vec3 newPos;
+	float size;
+	float speed;
+	float startTime;
+	float radius;
+};
+float verticalSpeed = 0.2f;
+float bubbleTime = 0.0f;
+std::vector<BubbleParams> bubbles;
+
 void DrawColoredBorder(Model& fishObjModel, const glm::mat4& fishModel, bool transparent) {
-    const glm::vec3 borderColor = glm::vec3(1.0f, 0.0f, 0.0f); // Red color
+	const glm::vec3 borderColor = glm::vec3(1.0f, 0.0f, 0.0f); // Red color
 
-    glm::mat4 borderModel = fishModel;
-    Shader borderShader("border.vs", "border.fs");
-    borderShader.Use();
+	glm::mat4 borderModel = fishModel;
+	Shader borderShader("border.vs", "border.fs");
+	borderShader.Use();
 
-    borderShader.SetMat4("model", borderModel);
-    borderShader.SetMat4("view", pCamera->GetViewMatrix());
-    borderShader.SetMat4("projection", pCamera->GetProjectionMatrix());
-    borderShader.SetVec3("borderColor", borderColor);
-    if (transparent) {
-        borderShader.SetVec4("borderColor", glm::vec4(borderColor, 0.0f));
-    }
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	borderShader.SetMat4("model", borderModel);
+	borderShader.SetMat4("view", pCamera->GetViewMatrix());
+	borderShader.SetMat4("projection", pCamera->GetProjectionMatrix());
+	borderShader.SetVec3("borderColor", borderColor);
+	if (transparent) {
+		borderShader.SetVec4("borderColor", glm::vec4(borderColor, 0.0f));
+	}
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	fishObjModel.RenderModel(borderShader);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void SwitchToFishPerspective(Camera* camera, const glm::vec3& fishPosition)
 {
-    glm::vec3 offset = glm::vec3(0.0f, 1.5f, -3.0f);
-    camera->SetPosition(fishPosition + offset);
-    glm::vec3 direction = glm::normalize(fishPosition - camera->GetPosition());
+	glm::vec3 offset = glm::vec3(0.0f, 1.5f, -3.0f);
+	camera->SetPosition(fishPosition + offset);
+	glm::vec3 direction = glm::normalize(fishPosition - camera->GetPosition());
 
-    float yaw = glm::degrees(atan2(direction.x, direction.z)) + 90;
-    float pitch = glm::degrees(asin(direction.y));
+	float yaw = glm::degrees(atan2(direction.x, direction.z)) + 90;
+	float pitch = glm::degrees(asin(direction.y));
 
-    camera->SetYaw(yaw);
-    camera->SetPitch(pitch);
+	camera->SetYaw(yaw);
+	camera->SetPitch(pitch);
 
 }
 
-
-int numGreyFishes = 20;
-int numBubbles = 20;
-
-struct BubbleParams
-{
-	glm::vec3 position;
-    glm::vec3 newPos;
-	float size;
-	float speed;
-    float startTime;
-    float radius;
-};
-
-std::vector<BubbleParams> bubbles;
-
-float verticalSpeed = 0.2f;
-float bubbleTime = 0.0f;
 void generateBubblesParams()
 {
 	for (int i = 0; i < numBubbles; i++)
@@ -85,7 +97,7 @@ void generateBubblesParams()
 		bubble.size = rand() % 10 / 100.0f;
 		bubble.speed = rand() % 10 / 100.0f;
 		bubble.startTime = rand() % 10;
-        bubble.radius = rand() % 10 / 10.0f;
+		bubble.radius = rand() % 10 / 10.0f;
 		bubbles.push_back(bubble);
 	}
 }
@@ -100,33 +112,35 @@ void generateBubbleParams(int index)
 	bubbles[index].radius = rand() % 10 / 10.0f;
 }
 
+// Define initial position of the bubble
 glm::vec3 bubblePosition;
 
 void resetBubblePosition(int index) {
-    bubbles[index].position = bubbles[index].newPos;
-    bubbles[index].size = rand() % 10 / 100.0f;
-    bubbles[index].startTime = 0.0f;
+	bubbles[index].position = bubbles[index].newPos;
+	bubbles[index].size = rand() % 10 / 100.0f;
+	bubbles[index].startTime = 0.0f;
 }
 
+// Function to update the position of the bubble with an offset
 void updateBubblePosition(int index) {
-    static std::chrono::steady_clock::time_point lastUpdateTime = std::chrono::steady_clock::now();
-    std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsedTime = currentTime - lastUpdateTime;
+	static std::chrono::steady_clock::time_point lastUpdateTime = std::chrono::steady_clock::now();
+	std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
+	std::chrono::duration<double> elapsedTime = currentTime - lastUpdateTime;
 
-    // If 2 seconds have passed, update the bubble position
-    lastUpdateTime = currentTime;
+	// If 2 seconds have passed, update the bubble position
+	lastUpdateTime = currentTime;
 
-    float xSpiral = 0.5f * cos(bubbles[index].speed * bubbles[index].startTime); // Compute x-coordinate of spiral
-    float zSpiral = 0.5f * sin(bubbles[index].speed * bubbles[index].startTime); // Compute z-coordinate of spiral
-    float y = verticalSpeed * bubbles[index].startTime; // Compute y-coordinate for vertical motion
-    bubbles[index].size -= 0.0001f;
-    bubbles[index].startTime += 0.01f;
+	float xSpiral = 0.5f * cos(bubbles[index].speed * bubbles[index].startTime); // Compute x-coordinate of spiral
+	float zSpiral = 0.5f * sin(bubbles[index].speed * bubbles[index].startTime); // Compute z-coordinate of spiral
+	float y = verticalSpeed * bubbles[index].startTime; // Compute y-coordinate for vertical motion
+	bubbles[index].size -= 0.0001f;
+	bubbles[index].startTime += 0.01f;
 
-    if (bubbles[index].size <= 0.0f)
-    {
-    	if (elapsedTime.count() < 2.0)
-    	{
-    		resetBubblePosition(index);
+	if (bubbles[index].size <= 0.0f)
+	{
+		if (elapsedTime.count() < 2.0)
+		{
+			resetBubblePosition(index);
 			return;
 		}
 	}
@@ -135,65 +149,51 @@ void updateBubblePosition(int index) {
 
 
 float roiRadius = 5.0f;
-glm::vec3 fishPosition = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 fishPosition = glm::vec3(0.0f, 3.0f, 0.0f);
 
+// Check if camera is within ROI
 bool IsCameraWithinROI(Camera* camera, const glm::vec3& fishPosition, float roiRadius) {
-    // Calculate distance between camera position and fish position
-    glm::vec3 cameraPosition = camera->GetPosition();
-    float distance = glm::distance(cameraPosition, fishPosition);
-    return distance < roiRadius;
+	// Calculate distance between camera position and fish position
+	glm::vec3 cameraPosition = camera->GetPosition();
+	float distance = glm::distance(cameraPosition, fishPosition);
+	return distance < roiRadius;
 }
-
-double mouseX = 0.0;
-double mouseY = 0.0;
-
-
-void FramebufferSizeCallback(GLFWwindow* window, int width, int height);
-void MouseCallback(GLFWwindow* window, double xpos, double ypos);
-void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow* window);
-
-double deltaTime = 0.0f;	// time between current frame and last frame
-double lastFrame = 0.0f;
 
 int keyPress = 0;
 bool isInFishPerspective = false;
 bool isTransparent = false;
 
-glm::mat4 fishModel = glm::mat4(1.0f); // Identity matrix
-
-
+glm::mat4 fishModel = glm::mat4(1.0f);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if (key == GLFW_KEY_A && action == GLFW_PRESS) {
+	if (key == GLFW_KEY_A && action == GLFW_PRESS) {
 
-    }
-    // Check if F key is pressed to switch camera perspective
-    if (key == GLFW_KEY_F && action == GLFW_PRESS) {
-        // Check if camera is within ROI of the fish
-        if (IsCameraWithinROI(pCamera, fishPosition, roiRadius)) {
-            // Switch camera perspective to that of the fish
-            if (keyPress % 2 == 0) {
-                SwitchToFishPerspective(pCamera, fishPosition);
-                isInFishPerspective = true;
-            }
-            else {
-                // Return to initial camera position
-                pCamera->SetPosition(glm::vec3(0.0, 1.0, 3.0));
-                isInFishPerspective = false;
-            }
-            isTransparent = !isTransparent;
-            keyPress++;
-        }
-        else if (keyPress % 2 == 1) {
-            // Return to initial camera position
-            pCamera->SetPosition(glm::vec3(0.0, 1.0, 3.0));
-            keyPress++;
-            isInFishPerspective = false;
-        }
-    }
+	}
+	// Check if F key is pressed to switch camera perspective
+	if (key == GLFW_KEY_F && action == GLFW_PRESS) {
+		// Check if camera is within ROI of the fish
+		if (IsCameraWithinROI(pCamera, fishPosition, roiRadius)) {
+			// Switch camera perspective to that of the fish
+			if (keyPress % 2 == 0) {
+				SwitchToFishPerspective(pCamera, fishPosition);
+				isInFishPerspective = true;
+			}
+			else {
+				// Return to initial camera position
+				pCamera->SetPosition(glm::vec3(0.0, 1.0, 3.0));
+				isInFishPerspective = false;
+			}
+			isTransparent = !isTransparent;
+			keyPress++;
+		}
+		else if (keyPress % 2 == 1) {
+			// Return to initial camera position
+			pCamera->SetPosition(glm::vec3(0.0, 1.0, 3.0));
+			keyPress++;
+			isInFishPerspective = false;
+		}
+	}
 }
-
 
 float fishAngleY = 0.0f;
 float fishAngleZ = 0.0f;
@@ -584,3 +584,4 @@ void ScrollCallback(GLFWwindow* window, double xoffset, double yOffset)
 {
 	pCamera->ProcessMouseScroll((float)yOffset);
 }
+

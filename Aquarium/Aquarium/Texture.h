@@ -3,14 +3,12 @@
 #include <Vector>
 
 struct Texture {
-public:
-	unsigned int id;
-	std::string type;
-	std::string path;
+    unsigned int id;
+    std::string type;
+    std::string path;
 
-	Texture() = default;
-	Texture(const std::string& strTexturePath);
-	Texture(std::vector<std::string> faces);
-}
+    Texture() = default;
+    Texture(const std::string& strTexturePath);
+    Texture(std::vector<std::string> faces);
 
-
+};
