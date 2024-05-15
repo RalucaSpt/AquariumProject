@@ -1,5 +1,4 @@
-﻿#include "Texture.h"
-#include <stdlib.h>
+﻿#include <stdlib.h>
 #include <stdio.h>
 #include <GL/glew.h>
 #define GLM_FORCE_CTOR_INIT 
@@ -14,7 +13,6 @@
 
 #include <codecvt>
 
-#include "Scene.h"
 #include "Shader.h"
 #include "Model.h"
 #include "Camera.h"
@@ -24,8 +22,6 @@
 #include <map>
 #include <math.h> 
 
-#include "Bubble.h"
-#include "TransparentObjects.h"
 
 #pragma comment (lib, "glfw3dll.lib")
 #pragma comment (lib, "glew32.lib")
@@ -228,7 +224,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 //auxiliar fish model
 float fishAngleY = 0.0f;
 float fishAngleZ = 0.0f;
-Scene scene;
 
 int main(int argc, char** argv)
 {
@@ -386,7 +381,6 @@ int main(int argc, char** argv)
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, floorTexture);
        
-        scene.renderScene(shadowMappingDepthShader, texturePaths);
         glCullFace(GL_BACK);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -406,7 +400,6 @@ int main(int argc, char** argv)
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
         glDisable(GL_CULL_FACE);
-        scene.renderScene(shadowMappingShader, texturePaths);
 
     	glm::mat4 goldFish = glm::mat4(1.0f);
 
@@ -509,7 +502,6 @@ int main(int argc, char** argv)
         }
 
         TransparentObjects transparentObjects;
-        transparentObjects.Draw(transparentShader, pCamera, texturePaths[0], lightSpaceMatrix, lightPos, projection, view, scene);
 
         //render all bubbles
         for (int i = 0; i < numBubbles; i++)
