@@ -167,6 +167,12 @@
     <ClInclude Include="Vertex.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\Shaders\Border.fs" />
+    <None Include="..\Shaders\Border.vs" />
+    <None Include="..\Shaders\ShadowMapping.fs" />
+    <None Include="..\Shaders\ShadowMapping.vs" />
+    <None Include="..\Shaders\ShadowMappingDepth.fs" />
+    <None Include="..\Shaders\ShadowMappingDepth.vs" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

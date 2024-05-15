@@ -56,5 +56,23 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="..\Shaders\Border.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\Shaders\Border.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\Shaders\ShadowMapping.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\Shaders\ShadowMapping.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\Shaders\ShadowMappingDepth.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\Shaders\ShadowMappingDepth.vs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
