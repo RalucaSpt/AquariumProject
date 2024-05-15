@@ -167,13 +167,7 @@
     <ClInclude Include="Vertex.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Border.fs" />
-    <None Include="Border.vs" />
     <None Include="packages.config" />
-    <None Include="ShadowMapping.fs" />
-    <None Include="ShadowMapping.vs" />
-    <None Include="ShadowMappingDepth.fs" />
-    <None Include="ShadowMappingDepth.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

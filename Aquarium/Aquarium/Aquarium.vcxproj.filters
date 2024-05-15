@@ -55,24 +55,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="ShadowMapping.fs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ShadowMapping.vs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ShadowMappingDepth.fs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ShadowMappingDepth.vs">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="packages.config" />
-    <None Include="Border.vs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="Border.fs">
-      <Filter>Resource Files</Filter>
-    </None>
   </ItemGroup>
 </Project>
