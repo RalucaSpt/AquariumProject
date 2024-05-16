@@ -17,7 +17,14 @@ enum class EFishMovementType
 class Fish
 {
 public:
+	float m_timeLeft;
+
+	Fish()=default;
+	Fish(const Fish& other);
 	Fish(const glm::vec3& initialPos, Model* model = nullptr);
+	//override equal operator
+	Fish& operator=(const Fish& other);
+
 	void SetPos(const glm::vec3& pos);
 	glm::vec3 GetPos() const;
 
@@ -28,6 +35,15 @@ public:
 	void Move(EFishMovementType direction);
 
 	void MoveFish(float deltaTime);
+
+	void SetDirection(EFishMovementType direction);
+	void StartNewMovement(float totalTime);
+
+	float GetFishSize() const;
+	float GetFishMovementTimer() const;
+
+	void SetFishSize(float size);
+	void SetFishMovementTimer(float timer);
 
 	float GetYaw() const;
 
@@ -61,6 +77,10 @@ private:
 
 	float takeoffTimer;
 	float takeoffCooldown = 2.f;
+
+	float m_fishMovementTimer = 0.f;
+
+	float m_fishSize = 1.f;
 };
 
 

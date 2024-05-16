@@ -10,6 +10,8 @@
 #include "Model.h"
 #include <stb_image.h>
 
+#include "Fish.h"
+
 #pragma comment (lib, "glfw3dll.lib")
 #pragma comment (lib, "glew32.lib")
 #pragma comment (lib, "OpenGL32.lib")
@@ -59,7 +61,7 @@ void DrawColoredBorder(Model& fishObjModel, const glm::mat4& fishModel, bool tra
 	const glm::vec3 borderColor = glm::vec3(1.0f, 0.0f, 0.0f); // Red color
 
 	glm::mat4 borderModel = fishModel;
-	Shader borderShader("border.vs", "border.fs");
+	Shader borderShader("../Shaders/Border.vs", "../Shaders/Border.fs");
 	borderShader.Use();
 
 	borderShader.SetMat4("model", borderModel);
@@ -147,6 +149,43 @@ void updateBubblePosition(int index) {
 	bubbles[index].position = bubbles[index].newPos + glm::vec3(xSpiral, y, zSpiral);
 }
 
+std::vector<Fish> fishes;
+
+void InitFishParams()
+{
+	for (int i = 0; i < numGreyFishes; i++)
+	{
+		Fish fish;
+		fish.SetPos(glm::vec3(static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 0.5f))));
+		fish.SetFishSize(0.1f);
+		float timer = 0.0f;
+		fish.SetFishMovementTimer(timer);
+		fishes.push_back(fish);
+	}
+}
+
+void resetFishTimer(int index)
+{
+	fishes[index].SetFishMovementTimer(1.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (5.0f - 2.0f))));
+}
+
+void UpdateFishPosition(int index, EFishMovementType direction)
+{
+	// Move the fish in the specified direction
+
+	fishes[index].Move(direction);
+	fishes[index].MoveFish(deltaTime);
+	float currFishTimer = fishes[index].GetFishMovementTimer();
+
+	while (currFishTimer <= 0)
+	{
+		resetFishTimer(index);
+		currFishTimer = fishes[index].GetFishMovementTimer();
+		//return;
+	}
+	fishes[index].SetFishMovementTimer(currFishTimer - 0.01f);
+}
+
 
 float roiRadius = 5.0f;
 glm::vec3 fishPosition = glm::vec3(0.0f, 3.0f, 0.0f);
@@ -197,6 +236,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 float fishAngleY = 0.0f;
 float fishAngleZ = 0.0f;
+
+Fish greyFish(glm::vec3(0.0f, 3.0f, 0.0f));
 
 int main(int argc, char** argv)
 {
@@ -269,7 +310,7 @@ int main(int argc, char** argv)
 	float floorHue = 0.9;
 	bool rotateLight = true;
 	generateBubblesParams();
-
+	InitFishParams();
 	while (!glfwWindowShouldClose(window))
 	{
 		// per-frame time logic
@@ -346,6 +387,26 @@ int main(int argc, char** argv)
 		lightPos = glm::vec3(0.0f, 20 * sin(sunPassingTime), 50 * cos(sunPassingTime));*/
 		//hue = std::max<float>(sin(sunPassingTime), 0.1);
 		//floorHue = std::max<float>(sin(sunPassingTime), 0.6);
+		if (IsCameraWithinROI(pCamera, fishPosition, roiRadius) && !isInFishPerspective)
+		{
+			const glm::vec3 borderColor = glm::vec3(1.0f, 0.0f, 0.0f); // Red color
+
+			glm::mat4 borderModel = fishModel;
+			Shader borderShader("../Shaders/Border.vs", "../Shaders/Border.fs");
+			borderShader.Use();
+
+			borderShader.SetMat4("model", borderModel);
+			borderShader.SetMat4("view", pCamera->GetViewMatrix());
+			borderShader.SetMat4("projection", pCamera->GetProjectionMatrix());
+			borderShader.SetVec3("borderColor", borderColor);
+			if (isTransparent) {
+				borderShader.SetVec4("borderColor", glm::vec4(borderColor, 0.0f));
+			}
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			fishObj->RenderModel(borderShader);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
+
 
 		hue = 1;
 		floorHue = 1;
@@ -455,14 +516,15 @@ void LoadObjects()
 	grayFishObj = std::make_unique<Model>("../Models/GreyFish/fish.obj", false);
 	starFishObj = std::make_unique<Model>("../Models/StarFish/starFish.obj", false);
 	bubbleObj = std::make_unique<Model>("../Models/Bubble/bubble.obj", false);
-	sandDune = std::make_unique<Model>("../Models/SandDune/sandDune.obj", false);
+	sandDune = std::make_unique<Model>("../Models/SandDune/sandDunes.obj", false);
 	floorObj = std::make_unique<Mesh>(floorVertices, std::vector<unsigned int>(), std::vector<Texture>{floorTexture});
 }
+int direction = 0;
 
 void RenderScene(Shader& shader)
 {
 	glm::mat4 sandDuneModelMatrix = glm::mat4(1.0f);
-	sandDuneModelMatrix = glm::translate(sandDuneModelMatrix, glm::vec3(0.0f, -12.f, 0.0f)); 
+	sandDuneModelMatrix = glm::translate(sandDuneModelMatrix, glm::vec3(0.0f, -12.f, 0.0f));
 	sandDuneModelMatrix = glm::scale(sandDuneModelMatrix, glm::vec3(0.025f, 0.1f, 0.025f));
 	sandDune->RenderModel(shader, sandDuneModelMatrix);
 
@@ -514,50 +576,121 @@ void RenderScene(Shader& shader)
 
 	// Loop to create the fish school
 	for (int i = 0; i < numGreyFishes; ++i) {
-		// Calculate angle for each fish
-		float angle = time * fishSpeed * angularSpeed + i * (2.0f * glm::pi<float>()) / numGreyFishes;
-
-		// Calculate position for each fish along the circular path
-		float newX = sin(angle) * radius; // X-coordinate of the fish's position
-		float newZ = cos(angle) * radius; // Z-coordinate of the fish's position
-
-		// Calculate row and column indices
-		int row = i / 5; // Assuming 5 fishes per row
-		int col = i % 5;
-
-		// Calculate position for each fish
-		float posX = col * spacing;
-		float posY = 0.0f;
-		float posZ = row * spacing;
-
-
-		//calculate new position for bubble
-		glm::vec3 bubbleInitialPos = glm::vec3(posX + newX, 0.0f, posZ + newZ);
-
 		glm::mat4 greyFish = glm::mat4(1.0f); // Reset fish model matrix
-		greyFish = glm::translate(greyFish, glm::vec3(posX + newX, posY, posZ + newZ)); // Update position
-		greyFish = glm::rotate(greyFish, -angle, glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate fish
-		greyFish = glm::scale(greyFish, glm::vec3(0.1f, 0.1f, 0.1f)); // Scale fish
-		grayFishObj->RenderModel(shader, greyFish); // Draw fish object.Draw(shadowMappingShader); // Draw fish object
+		float moveDuration = 1.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (5.0f - 2.0f)));
+		
+		while (moveDuration > 0.0f) {
+			float currFishTimer = fishes[i].GetFishMovementTimer();
+			if (currFishTimer <= 0)
+			{
+				resetFishTimer(i);
+				direction = rand() % 6;
+				currFishTimer = fishes[i].GetFishMovementTimer();
+				//return;
+			}
+			switch (direction) {
+			case 0:
+				fishes[i].Move(EFishMovementType::FORWARD);
+				break;
+			case 1:
+				fishes[i].Move(EFishMovementType::FORWARD);
+				break;
+			case 2:
+				fishes[i].Move(EFishMovementType::UP);
+				break;
+			case 3:
+				fishes[i].Move(EFishMovementType::DOWN);
+				break;
+			case 4:
+				fishes[i].Move(EFishMovementType::LEFT);
+			case 5:
+				fishes[i].Move(EFishMovementType::RIGHT);
+			}
 
-		bubbles[i].newPos = bubbleInitialPos;
+			fishes[i].MoveFish(0.1f);
+
+			
+			fishes[i].SetFishMovementTimer(currFishTimer - 0.01f);
+
+			greyFish = glm::translate(greyFish, fishes[i].GetPos()); // Set initial position of fish
+			greyFish = glm::rotate(greyFish, glm::radians(90.f), glm::vec3(0, 1, 0));
+			greyFish = glm::rotate(greyFish, -glm::radians(fishes[i].GetYaw()), glm::vec3(0, 1, 0));
+			greyFish = glm::rotate(greyFish, -glm::radians(fishes[i].GetPitch()), glm::vec3(1, 0, 0));
+			greyFish = glm::scale(greyFish, glm::vec3(0.1f, 0.1f, 0.1f)); // Scale fish
+			//calculate new position for bubble
+			glm::vec3 bubbleInitialPos = glm::vec3(fishes[i].GetPos());
+
+			grayFishObj->RenderModel(shader, greyFish); // Draw fish object.Draw(shadowMappingShader); // Draw fish object
+
+			bubbles[i].newPos = bubbleInitialPos;
+			moveDuration -= deltaTime;
+		}
+	}
+	for (int i = 0; i < numGreyFishes; ++i) {
+		glm::mat4 greyFish = glm::mat4(1.0f);
+		if (fishes[i].m_timeLeft <= 0) {
+			// Start a new movement
+			float moveDuration = static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (5.0f - 2.0f)));
+			fishes[i].StartNewMovement(moveDuration);
+		}
+
+		// Update the fish's position
+		fishes[i].MoveFish(deltaTime);
+		greyFish = glm::translate(greyFish, fishes[i].GetPos()); // Set initial position of fish
+				greyFish = glm::rotate(greyFish, glm::radians(90.f), glm::vec3(0, 1, 0));
+				greyFish = glm::rotate(greyFish, -glm::radians(fishes[i].GetYaw()), glm::vec3(0, 1, 0));
+				greyFish = glm::rotate(greyFish, -glm::radians(fishes[i].GetPitch()), glm::vec3(1, 0, 0));
+				greyFish = glm::scale(greyFish, glm::vec3(0.1f, 0.1f, 0.1f)); // Scale fish
+				//calculate new position for bubble
+				//glm::vec3 bubbleInitialPos = glm::vec3(fishes[i].GetPos());
+
+				grayFishObj->RenderModel(shader, greyFish); // Draw fish object.Draw(shadowMappingShader); // Draw fish object
 
 	}
+	//glm::mat4 greyFishModel = glm::mat4(1.0f);
+	//float moveDuration = 1.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (5.0f - 2.0f)));
+
+	//int direction = rand() % 4;
+	//while (moveDuration > 0.0f) {
+
+	//	switch (direction) {
+	//	case 0:
+	//		greyFish.Move(EFishMovementType::FORWARD);
+	//		break;
+	//	case 1:
+	//		//greyFish.Move(EFishMovementType::BACKWARD);
+	//		break;
+	//	case 2:
+	//		greyFish.Move(EFishMovementType::UP);
+	//		break;
+	//	case 3:
+	//		greyFish.Move(EFishMovementType::DOWN);
+	//		break;
+	//	}
+	//	greyFish.MoveFish(deltaTime);
+	//	greyFishModel = glm::translate(greyFishModel, greyFish.GetPos());
+
+	//	greyFishModel = glm::rotate(greyFishModel, glm::radians(90.f), glm::vec3(0, 1, 0));
+	//	greyFishModel = glm::rotate(greyFishModel, -glm::radians(greyFish.GetYaw()), glm::vec3(0, 1, 0));
+	//	greyFishModel = glm::rotate(greyFishModel, -glm::radians(greyFish.GetPitch()), glm::vec3(1, 0, 0));
+
+	//	greyFishModel = glm::scale(greyFishModel, glm::vec3(0.1f, 0.1f, 0.1f));
+	//	grayFishObj->RenderModel(shader, greyFishModel);
+	//	moveDuration -= deltaTime;
+	//}
 
 
+
+
+	//fishObj->RenderModel(shader, fishModel);
 	if (isInFishPerspective)
 	{
 		//Apply fishAngleY to fish model
 		fishModel = glm::rotate(fishModel, glm::radians(fishAngleZ), glm::vec3(0.0f, 0.0f, 1.0f));
 		fishModel = glm::rotate(fishModel, glm::radians(fishAngleY), glm::vec3(0.0f, 1.0f, 0.0f));
 	}
-	fishObj->RenderModel(shader, fishModel);
 
 
-	/*if (IsCameraWithinROI(pCamera, fishPosition, roiRadius) && !isInFishPerspective)
-	{
-		DrawColoredBorder(fishObj, fishModel, isTransparent);
-	}*/
 
 	glEnable(GL_CULL_FACE);
 
@@ -583,7 +716,6 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 	{
 		timeAcceleration += 0.05f;
 	}
-
 }
 
 void FramebufferSizeCallback(GLFWwindow* window, int width, int height)
