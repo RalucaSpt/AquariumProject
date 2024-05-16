@@ -80,10 +80,17 @@
     <None Include="..\Shaders\ShadowMappingDepth.vs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="sandDune.vs">
+    <None Include="skybox.vs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="sandDune.fs">
+    <None Include="skybox.fs" />
+    <None Include="..\Shaders\sandDune.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\Shaders\sandDune.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\Shaders\skybox.fs">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

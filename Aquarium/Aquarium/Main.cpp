@@ -25,6 +25,8 @@ auto t_start = std::chrono::high_resolution_clock::now();
 Camera* pCamera;
 std::unique_ptr<Mesh> floorObj, cubeObj;
 std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, starFishObj, bubbleObj, sandDune;
+std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, starFishObj, bubbleObj, sandDune, water;
+std::unique_ptr<Model> anchor, coral, coralRock, moonCoral, curacao, fan, plant, shell,sponge;
 float timeAcceleration = 0.1f;
 glm::vec3 zrotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
@@ -517,19 +519,24 @@ void LoadObjects()
 	starFishObj = std::make_unique<Model>("../Models/StarFish/starFish.obj", false);
 	bubbleObj = std::make_unique<Model>("../Models/Bubble/bubble.obj", false);
 	sandDune = std::make_unique<Model>("../Models/SandDune/sandDunes.obj", false);
+	water = std::make_unique<Model>("../Models/Water/water.obj", false);
+	moonCoral = std::make_unique<Model>("../Models/Fauna/moonCoral/moonCoral.obj", false);
+	//curacao = std::make_unique<Model>("../Models/Fauna/curacao/model.obj", false);
+	fan = std::make_unique<Model>("../Models/Fauna/fan/model.obj", false);
+	plant = std::make_unique<Model>("../Models/Fauna/plant/plant.obj", false);
+	shell = std::make_unique<Model>("../Models/Fauna/shell/shell.obj", false);
+	//sponge = std::make_unique<Model>("../Models/Fauna/sponge/model.obj", false);
 	floorObj = std::make_unique<Mesh>(floorVertices, std::vector<unsigned int>(), std::vector<Texture>{floorTexture});
 }
 int direction = 0;
 
 void RenderScene(Shader& shader)
 {
-	glm::mat4 sandDuneModelMatrix = glm::mat4(1.0f);
-	sandDuneModelMatrix = glm::translate(sandDuneModelMatrix, glm::vec3(0.0f, -12.f, 0.0f));
-	sandDuneModelMatrix = glm::scale(sandDuneModelMatrix, glm::vec3(0.025f, 0.1f, 0.025f));
-	sandDune->RenderModel(shader, sandDuneModelMatrix);
+	waterModelMatrix = glm::translate(waterModelMatrix, glm::vec3(0.0f, -12.f, 0.0f));
+	waterModelMatrix = glm::scale(waterModelMatrix, glm::vec3(0.14f, 1.f, 0.14f));
+	//water->RenderModel(shader, waterModelMatrix);
 
 	glm::mat4 goldFish = glm::mat4(1.0f);
-
 	goldFish = glm::translate(goldFish, glm::vec3(10.0f, 3.0f, -1.0f));
 	goldFish = glm::rotate(goldFish, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
 	//goldFish = glm::scale(goldFish, glm::vec3(0.1f, 0.1f, 0.1f));
@@ -679,6 +686,26 @@ void RenderScene(Shader& shader)
 	//	moveDuration -= deltaTime;
 	//}
 
+	glm::mat4 sandDuneModelMatrix = glm::mat4(1.0f);
+	sandDuneModelMatrix = glm::translate(sandDuneModelMatrix, glm::vec3(0.0f, -12.f, 0.0f)); 
+	sandDuneModelMatrix = glm::scale(sandDuneModelMatrix, glm::vec3(5.f, 5.f, 5.f));
+	sandDune->RenderModel(shader, sandDuneModelMatrix);
+
+	glm::mat4 anchorModelMatrix = glm::mat4(1.0f);
+	anchorModelMatrix = glm::translate(anchorModelMatrix, glm::vec3(20.0f, -14.f, -15.0f));
+	anchorModelMatrix = glm::scale(anchorModelMatrix, glm::vec3(0.13f, 0.13f, 0.13f));
+	anchor->RenderModel(shader, anchorModelMatrix);
+
+	glm::mat4 coralModelMatrix = glm::mat4(1.0f);
+	coralModelMatrix = glm::translate(coralModelMatrix, glm::vec3(0.0f, 0.f, 0.0f));
+	coralModelMatrix = glm::scale(coralModelMatrix, glm::vec3(0.5f, 0.5f, 0.5f));
+	coral->RenderModel(shader, coralModelMatrix);
+
+	glm::mat4 plantModelMatrix = glm::mat4(1.0f);
+	plantModelMatrix = glm::translate(plantModelMatrix, glm::vec3(5.0f, -1.f, 8.0f));
+	plantModelMatrix = glm::scale(plantModelMatrix, glm::vec3(10.f, 10.f, 10.f));
+	plantModelMatrix = glm::rotate(plantModelMatrix, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	plant->RenderModel(shader, plantModelMatrix);
 
 
 
@@ -706,7 +733,10 @@ void RenderScene(Shader& shader)
 	}
 	glDisable(GL_CULL_FACE);
 	floorObj->RenderMesh(shader);
-	cubeObj->RenderMesh(shader);
+	glm::mat4 cubeModelMatrix = glm::mat4(1.0f);
+	cubeModelMatrix = glm::translate(cubeModelMatrix, glm::vec3(0.0f, 0.f, 0.0f));
+	cubeModelMatrix = glm::scale(cubeModelMatrix, glm::vec3(2.f, 1.0f, 2.f));
+	cubeObj->RenderMesh(shader, cubeModelMatrix);
 }
 
 

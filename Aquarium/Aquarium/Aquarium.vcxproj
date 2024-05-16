@@ -171,13 +171,16 @@
   <ItemGroup>
     <None Include="..\Shaders\Border.fs" />
     <None Include="..\Shaders\Border.vs" />
+    <None Include="..\Shaders\sandDune.fs" />
+    <None Include="..\Shaders\sandDune.vs" />
     <None Include="..\Shaders\ShadowMapping.fs" />
     <None Include="..\Shaders\ShadowMapping.vs" />
     <None Include="..\Shaders\ShadowMappingDepth.fs" />
     <None Include="..\Shaders\ShadowMappingDepth.vs" />
+    <None Include="..\Shaders\skybox.fs" />
     <None Include="packages.config" />
-    <None Include="sandDune.fs" />
-    <None Include="sandDune.vs" />
+    <None Include="skybox.fs" />
+    <None Include="skybox.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
