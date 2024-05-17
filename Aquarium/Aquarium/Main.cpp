@@ -7,7 +7,6 @@
 #include <cstdlib> // For rand() and srand()
 #include <ctime> // For time()
 
-
 #include "Camera.h"
 #include "Shader.h"
 #include "Mesh.h"
@@ -24,7 +23,8 @@ auto t_start = std::chrono::high_resolution_clock::now();
 
 Camera* pCamera;
 std::unique_ptr<Mesh> floorObj, cubeObj;
-std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, starFishObj, bubbleObj, sandDune, coral, plant, anchor;
+std::unique_ptr<Model> starFishObj, bubbleObj, sandDune, coral, plant, anchor;
+std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, angelFishObj;
 float timeAcceleration = 0.1f;
 glm::vec3 zrotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
@@ -43,6 +43,19 @@ int m_mapWidth, m_mapHeight, m_mapChannels, m_indicesRez;
 std::vector<float> m_vertices;
 int numGreyFishes = 20;
 int numBubbles = 20;
+
+std::vector<int> fishModels;
+int numFishSpecies = 5;
+void InitFishModels()
+{
+	int model = rand() % numFishSpecies;
+	for (int i = 0; i < numGreyFishes; i++)
+	{
+		fishModels.push_back(model);
+		model = rand() % numFishSpecies;
+	}
+}
+
 struct BubbleParams
 {
 	glm::vec3 position;
@@ -156,22 +169,15 @@ glm::vec3 GeneratePosition()
 	return glm::vec3(x, y, z);
 }
 
-
-//srand(static_cast<unsigned int>(time(0)));
-
 void InitFishParams()
 {
 	for (int i = 0; i < numGreyFishes; i++)
 	{
 		Fish fish;
 
-		// Set random position within the cube
 		fish.SetPos(GeneratePosition());
-
-		// Set random size
 		fish.SetFishSize(0.1f);
 
-		// Set random initial orientation
 		float randomYaw = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 360.0f); // Yaw between 0 and 360 degrees
 		float randomPitch = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 90.0f) - 45.0f; // Pitch between -45 and 45 degrees
 		float randomRoll = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 360.0f); // Roll between 0 and 360 degrees
@@ -180,14 +186,10 @@ void InitFishParams()
 		fish.SetPitch(randomPitch);
 		fish.SetRoll(randomRoll);
 
-		// Update the fish's vectors based on the initial orientation
 		fish.InitialFishVectors();
 
-		// Set initial movement timer
 		float timer = 0.0f;
 		fish.SetFishMovementTimer(timer);
-
-		// Add fish to the list
 		fishes.push_back(fish);
 	}
 }
@@ -233,17 +235,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_A && action == GLFW_PRESS) {
 
 	}
-	// Check if F key is pressed to switch camera perspective
 	if (key == GLFW_KEY_F && action == GLFW_PRESS) {
-		// Check if camera is within ROI of the fish
 		if (IsCameraWithinROI(pCamera, fishPosition, roiRadius)) {
-			// Switch camera perspective to that of the fish
 			if (keyPress % 2 == 0) {
 				SwitchToFishPerspective(pCamera, fishPosition);
 				isInFishPerspective = true;
 			}
 			else {
-				// Return to initial camera position
 				pCamera->SetPosition(glm::vec3(0.0, 1.0, 3.0));
 				isInFishPerspective = false;
 			}
@@ -251,7 +249,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			keyPress++;
 		}
 		else if (keyPress % 2 == 1) {
-			// Return to initial camera position
 			pCamera->SetPosition(glm::vec3(0.0, 1.0, 3.0));
 			keyPress++;
 			isInFishPerspective = false;
@@ -336,6 +333,7 @@ int main(int argc, char** argv)
 	bool rotateLight = true;
 	generateBubblesParams();
 	InitFishParams();
+	InitFishModels();
 	while (!glfwWindowShouldClose(window))
 	{
 		// per-frame time logic
@@ -531,9 +529,11 @@ void LoadObjects()
 	// Objects loading
 	cubeObj = std::make_unique<Mesh>(cubeVertices, std::vector<unsigned int>(), std::vector<Texture>{cubeTexture});
 	fishObj = std::make_unique<Model>("../Models/Fish/fish.obj", false);
-	goldFishObj = std::make_unique<Model>("../Models/GoldFish/fish2.obj", false);
+	goldFishObj = std::make_unique<Model>("../Models/GoldFish/goldFish.obj", false);
 	coralBeautyFishObj = std::make_unique<Model>("../Models/CoralBeauty/coralBeauty.obj", false);
 	grayFishObj = std::make_unique<Model>("../Models/GreyFish/fish.obj", false);
+	angelFishObj = std::make_unique<Model>("../Models/Fishes/AngelFish/fish.obj", false);
+
 	starFishObj = std::make_unique<Model>("../Models/StarFish/starFish.obj", false);
 	bubbleObj = std::make_unique<Model>("../Models/Bubble/bubble.obj", false);
 	sandDune = std::make_unique<Model>("../Models/SandDune/sandDunes.obj", false);
@@ -550,44 +550,24 @@ void RenderScene(Shader& shader)
 	//waterModelMatrix = glm::scale(waterModelMatrix, glm::vec3(0.14f, 1.f, 0.14f));
 	////water->RenderModel(shader, waterModelMatrix);
 
-	glm::mat4 goldFish = glm::mat4(1.0f);
-
-	goldFish = glm::translate(goldFish, glm::vec3(10.0f, 3.0f, -1.0f));
-	goldFish = glm::rotate(goldFish, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-	//goldFish = glm::scale(goldFish, glm::vec3(0.1f, 0.1f, 0.1f));
-	goldFishObj->RenderModel(shader, goldFish);
-
-
-	glm::mat4 coralBeautyModelMatrix = glm::mat4(1.0f);
-	coralBeautyModelMatrix = glm::translate(coralBeautyModelMatrix, glm::vec3(2.0f, 3.0f, -1.0f));
-	coralBeautyModelMatrix = glm::rotate(coralBeautyModelMatrix, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-	coralBeautyModelMatrix = glm::scale(coralBeautyModelMatrix, glm::vec3(0.8f, 0.8f, 0.8f));
-	// Desenează modelul Coral Beauty
-	coralBeautyFishObj->RenderModel(shader, coralBeautyModelMatrix);
-
-	// Configurare model matrix pentru Starfish
+	//Starfish
 	glm::mat4 starfishModelMatrix = glm::mat4(1.0f);
 	starfishModelMatrix = glm::translate(starfishModelMatrix, glm::vec3(-1.0f, 0.0f, -1.0f)); // Ajustează poziționarea
 	starfishModelMatrix = glm::scale(starfishModelMatrix, glm::vec3(0.1f, 0.1f, 0.1f)); // Ajustează scalarea
-
-	//Starfish
 	starFishObj->RenderModel(shader, starfishModelMatrix);
 
+	//static fish
 	fishModel = glm::mat4(1.0f);
 	fishModel = glm::translate(fishModel, fishPosition);
-	//rotate around z-axis
-	fishModel = glm::rotate(fishModel, glm::radians(
-		90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis
-	fishModel = glm::rotate(fishModel, glm::radians(
-		90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
-	fishModel = glm::scale(fishModel, glm::vec3(
-		0.1f, 0.1f, 0.1f
-	)); // Scale uniformly
+	fishModel = glm::rotate(fishModel, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis
+	fishModel = glm::rotate(fishModel, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
+	fishModel = glm::scale(fishModel, glm::vec3(0.1f, 0.1f, 0.1f)); 
+	fishObj->RenderModel(shader, fishModel);
 
-	//Gray Fishes
+	//Fishes
 	for (int i = 0; i < numGreyFishes; ++i) {
 		direction = EFishMovementType::LEFT;
-		glm::mat4 greyFish = glm::mat4(1.0f);
+		glm::mat4 fish = glm::mat4(1.0f);
 		float currFishTimer = fishes[i].GetFishMovementTimer();
 		if (currFishTimer <= 0) {
 			resetFishTimer(i);
@@ -604,14 +584,30 @@ void RenderScene(Shader& shader)
 
 		auto pos = fishes[i].GetPos();
 
-		greyFish = glm::translate(greyFish, pos); 
-		greyFish = glm::rotate(greyFish, glm::radians(90.0f), glm::vec3(0, 1, 0)); 
-		greyFish = glm::rotate(greyFish, -glm::radians(fishes[i].GetYaw()), glm::vec3(0, 1, 0)); 
-		greyFish = glm::rotate(greyFish, -glm::radians(fishes[i].GetPitch()), glm::vec3(1, 0, 0)); 
-		greyFish = glm::scale(greyFish, glm::vec3(0.1f, 0.1f, 0.1f)); 
+		fish = glm::translate(fish, pos);
+		fish = glm::rotate(fish, glm::radians(90.0f), glm::vec3(0, 1, 0));
+		fish = glm::rotate(fish, -glm::radians(fishes[i].GetYaw()), glm::vec3(0, 1, 0));
+		fish = glm::rotate(fish, -glm::radians(fishes[i].GetPitch()), glm::vec3(1, 0, 0));
+		fish = glm::scale(fish, glm::vec3(0.1f, 0.1f, 0.1f));
 
 		glm::vec3 bubbleInitialPos = pos;
-		grayFishObj->RenderModel(shader, greyFish); 
+
+		int randomFishObject = fishModels[i];
+		switch (randomFishObject)
+		{
+			case 0:
+				grayFishObj->RenderModel(shader, fish);
+				break;
+			case 1:
+				goldFishObj->RenderModel(shader, fish);
+				break;
+			case 2:
+				fishObj->RenderModel(shader, fish);
+				break;
+			case 3:
+				angelFishObj->RenderModel(shader, fish);
+				break;
+		}
 		bubbles[i].newPos = bubbleInitialPos;
 
 	}
@@ -637,9 +633,6 @@ void RenderScene(Shader& shader)
 	plantModelMatrix = glm::rotate(plantModelMatrix, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	//plant->RenderModel(shader, plantModelMatrix);
 
-
-
-	fishObj->RenderModel(shader, fishModel);
 	if (isInFishPerspective)
 	{
 		//Apply fishAngleY to fish model
