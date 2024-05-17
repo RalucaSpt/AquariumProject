@@ -1,0 +1,11 @@
+Model Information:
+* title:	small flat cube of water
+* source:	https://sketchfab.com/3d-models/small-flat-cube-of-water-ebecbb8076284daaae5ed5d3ec3b61ab
+* author:	organ collector (https://sketchfab.com/jtaylor27)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "small flat cube of water" (https://sketchfab.com/3d-models/small-flat-cube-of-water-ebecbb8076284daaae5ed5d3ec3b61ab) by organ collector (https://sketchfab.com/jtaylor27) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

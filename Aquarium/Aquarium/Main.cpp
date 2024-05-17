@@ -531,10 +531,9 @@ void LoadObjects()
 	coralBeautyFishObj = std::make_unique<Model>("../Models/CoralBeauty/coralBeauty.obj", false);
 	grayFishObj = std::make_unique<Model>("../Models/GreyFish/fish.obj", false);
 	angelFishObj = std::make_unique<Model>("../Models/Fishes/AngelFish/fish.obj", false);
-
 	starFishObj = std::make_unique<Model>("../Models/StarFish/starFish.obj", false);
 	bubbleObj = std::make_unique<Model>("../Models/Bubble/bubble.obj", false);
-	sandDune = std::make_unique<Model>("../Models/SandDune/sandDunes.obj", false);
+	sandDune = std::make_unique<Model>("../Models/BigFauna/fauna.obj", false);
 	floorObj = std::make_unique<Mesh>(floorVertices, std::vector<unsigned int>(), std::vector<Texture>{floorTexture});
 }
 
