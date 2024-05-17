@@ -466,18 +466,18 @@ void ProcessKeyboard(GLFWwindow* window)
 void LoadObjects()
 {
 	// Texture loading
-	Texture floorTexture("../Models/Floor/FloorTexture.jpg");
+	Texture floorTexture("../Models/Floor/marble.jpg");
 	Texture cubeTexture("../Models/Cube/glass.png");
 	const float floorSize = 5000.0f;
 	std::vector<Vertex> floorVertices({
-		// positions            // normals           // texcoords
-		{ floorSize, -13.0f,  floorSize,  0.0f, 1.0f, 0.0f,    floorSize,  0.0f},
-		{-floorSize, -13.0f,  floorSize,  0.0f, 1.0f, 0.0f,    0.0f,  0.0f},
-		{-floorSize, -13.0f, -floorSize,  0.0f, 1.0f, 0.0f,    0.0f, floorSize},
+		// positions              // normals          // texcoords
+		{ floorSize, -13.0f,  floorSize,  0.0f, 1.0f, 0.0f,    1.0f, 0.0f},
+		{-floorSize, -13.0f,  floorSize,  0.0f, 1.0f, 0.0f,    0.0f, 0.0f},
+		{-floorSize, -13.0f, -floorSize,  0.0f, 1.0f, 0.0f,    0.0f, 1.0f},
 
-		{ floorSize, -13.0f,  floorSize,  0.0f, 1.0f, 0.0f,    floorSize,  0.0f},
-		{-floorSize, -13.0f, -floorSize,  0.0f, 1.0f, 0.0f,    0.0f, floorSize},
-		{ floorSize, -13.0f, -floorSize,  0.0f, 1.0f, 0.0f,    floorSize, floorSize}
+		{ floorSize, -13.0f,  floorSize,  0.0f, 1.0f, 0.0f,    1.0f, 0.0f},
+		{-floorSize, -13.0f, -floorSize,  0.0f, 1.0f, 0.0f,    0.0f, 1.0f},
+		{ floorSize, -13.0f, -floorSize,  0.0f, 1.0f, 0.0f,    1.0f, 1.0f}
 		});
 
 	std::vector<Vertex> cubeVertices({
@@ -524,8 +524,6 @@ void LoadObjects()
 
 	stbi_set_flip_vertically_on_load(false);
 
-
-
 	// Objects loading
 	cubeObj = std::make_unique<Mesh>(cubeVertices, std::vector<unsigned int>(), std::vector<Texture>{cubeTexture});
 	fishObj = std::make_unique<Model>("../Models/Fish/fish.obj", false);
@@ -539,6 +537,7 @@ void LoadObjects()
 	sandDune = std::make_unique<Model>("../Models/SandDune/sandDunes.obj", false);
 	floorObj = std::make_unique<Mesh>(floorVertices, std::vector<unsigned int>(), std::vector<Texture>{floorTexture});
 }
+
 EFishMovementType direction = EFishMovementType::FORWARD;
 
 int movementIndex = 0;
@@ -566,6 +565,7 @@ void RenderScene(Shader& shader)
 
 	//Fishes
 	for (int i = 0; i < numGreyFishes; ++i) {
+		fishes[i].CheckWalls(12.5f);
 		direction = EFishMovementType::LEFT;
 		glm::mat4 fish = glm::mat4(1.0f);
 		float currFishTimer = fishes[i].GetFishMovementTimer();
@@ -588,7 +588,7 @@ void RenderScene(Shader& shader)
 		fish = glm::rotate(fish, glm::radians(90.0f), glm::vec3(0, 1, 0));
 		fish = glm::rotate(fish, -glm::radians(fishes[i].GetYaw()), glm::vec3(0, 1, 0));
 		fish = glm::rotate(fish, -glm::radians(fishes[i].GetPitch()), glm::vec3(1, 0, 0));
-		fish = glm::scale(fish, glm::vec3(0.1f, 0.1f, 0.1f));
+		fish = glm::scale(fish, glm::vec3(0.5f, 0.5f, 0.5f));
 
 		glm::vec3 bubbleInitialPos = pos;
 

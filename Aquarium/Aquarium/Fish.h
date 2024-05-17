@@ -32,6 +32,8 @@ public:
 	Model* getModel();
 
 	void InitialFishVectors();
+	void Flip();
+	void CheckWalls(float boundary);
 
 
 	void Move(EFishMovementType direction);

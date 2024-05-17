@@ -97,6 +97,24 @@ void Fish::InitialFishVectors()
 	m_up = glm::normalize(glm::cross(m_right, m_forward));
 }
 
+void Fish::Flip()
+{
+	m_yaw += 180.0f;
+	if (m_yaw >= 360.0f) {
+		m_yaw -= 360.0f;
+	}
+	UpdateFishVectors();
+}
+
+void Fish::CheckWalls(float boundary)
+{
+	if (m_position.x >= boundary || m_position.x <= -boundary ||
+		m_position.y >= boundary/2 || m_position.y <= -boundary ||
+		m_position.z >= boundary || m_position.z <= -boundary) {
+		Flip();
+	}
+}
+
 void Fish::Move(EFishMovementType direction)
 {
     switch (direction)
