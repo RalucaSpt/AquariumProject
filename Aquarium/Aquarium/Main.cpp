@@ -3,23 +3,20 @@
 #include <GL/glew.h>
 #include <glfw3.h>
 #include <chrono>
+#include <stb_image.h>
 
 #include "Camera.h"
 #include "Shader.h"
 #include "Mesh.h"
 #include "Model.h"
-#include <stb_image.h>
-
 #include "Fish.h"
 
 #pragma comment (lib, "glfw3dll.lib")
 #pragma comment (lib, "glew32.lib")
 #pragma comment (lib, "OpenGL32.lib")
 
-// settings
 const unsigned int SCR_WIDTH = 2560;
 const unsigned int SCR_HEIGHT = 1440;
-
 auto t_start = std::chrono::high_resolution_clock::now();
 
 Camera* pCamera;
@@ -36,7 +33,6 @@ void ProcessKeyboard(GLFWwindow* window);
 
 void LoadObjects();
 void RenderScene(Shader& shader);
-
 
 double deltaTime = 0.0f;
 double lastFrame = 0.0f;
@@ -151,18 +147,33 @@ void updateBubblePosition(int index) {
 
 std::vector<Fish> fishes;
 
+glm::vec3 GeneratePosition()
+{
+	// Cube dimensions
+	float halfSideLength = 12.5f;
+
+	// Generate random coordinates within the cube's bounds
+	float x = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / (2 * halfSideLength)) - halfSideLength;
+	float y = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / (2 * halfSideLength)) - halfSideLength;
+	float z = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / (2 * halfSideLength)) - halfSideLength;
+
+	return glm::vec3(x, y, z);
+}
+
+
 void InitFishParams()
 {
 	for (int i = 0; i < numGreyFishes; i++)
 	{
 		Fish fish;
-		fish.SetPos(glm::vec3(static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 0.5f))));
+		fish.SetPos(GeneratePosition()); 
 		fish.SetFishSize(0.1f);
 		float timer = 0.0f;
 		fish.SetFishMovementTimer(timer);
 		fishes.push_back(fish);
 	}
 }
+
 
 void resetFishTimer(int index)
 {
@@ -173,7 +184,7 @@ void UpdateFishPosition(int index, EFishMovementType direction)
 {
 	// Move the fish in the specified direction
 
-	fishes[index].Move(direction);
+	fishes[index].Move(direction); 
 	fishes[index].MoveFish(deltaTime);
 	float currFishTimer = fishes[index].GetFishMovementTimer();
 
@@ -383,10 +394,6 @@ int main(int argc, char** argv)
 		glDisable(GL_CULL_FACE);
 		RenderScene(shadowMappingShader);
 
-		/*float sunPassingTime = currentFrame * timeAcceleration;
-		lightPos = glm::vec3(0.0f, 20 * sin(sunPassingTime), 50 * cos(sunPassingTime));*/
-		//hue = std::max<float>(sin(sunPassingTime), 0.1);
-		//floorHue = std::max<float>(sin(sunPassingTime), 0.6);
 		if (IsCameraWithinROI(pCamera, fishPosition, roiRadius) && !isInFishPerspective)
 		{
 			const glm::vec3 borderColor = glm::vec3(1.0f, 0.0f, 0.0f); // Red color
