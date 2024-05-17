@@ -4,6 +4,9 @@
 #include <glfw3.h>
 #include <chrono>
 #include <stb_image.h>
+#include <cstdlib> // For rand() and srand()
+#include <ctime> // For time()
+
 
 #include "Camera.h"
 #include "Shader.h"
@@ -100,7 +103,6 @@ void generateBubblesParams()
 	}
 }
 
-
 void generateBubbleParams(int index)
 {
 	bubbles[index].position = glm::vec3(static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 0.1f)));
@@ -110,7 +112,6 @@ void generateBubbleParams(int index)
 	bubbles[index].radius = rand() % 10 / 10.0f;
 }
 
-// Define initial position of the bubble
 glm::vec3 bubblePosition;
 
 void resetBubblePosition(int index) {
@@ -119,15 +120,12 @@ void resetBubblePosition(int index) {
 	bubbles[index].startTime = 0.0f;
 }
 
-// Function to update the position of the bubble with an offset
 void updateBubblePosition(int index) {
 	static std::chrono::steady_clock::time_point lastUpdateTime = std::chrono::steady_clock::now();
 	std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
 	std::chrono::duration<double> elapsedTime = currentTime - lastUpdateTime;
 
-	// If 2 seconds have passed, update the bubble position
 	lastUpdateTime = currentTime;
-
 	float xSpiral = 0.5f * cos(bubbles[index].speed * bubbles[index].startTime); // Compute x-coordinate of spiral
 	float zSpiral = 0.5f * sin(bubbles[index].speed * bubbles[index].startTime); // Compute z-coordinate of spiral
 	float y = verticalSpeed * bubbles[index].startTime; // Compute y-coordinate for vertical motion
@@ -149,10 +147,8 @@ std::vector<Fish> fishes;
 
 glm::vec3 GeneratePosition()
 {
-	// Cube dimensions
 	float halfSideLength = 12.5f;
 
-	// Generate random coordinates within the cube's bounds
 	float x = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / (2 * halfSideLength)) - halfSideLength;
 	float y = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / (2 * halfSideLength)) - halfSideLength;
 	float z = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / (2 * halfSideLength)) - halfSideLength;
@@ -161,15 +157,37 @@ glm::vec3 GeneratePosition()
 }
 
 
+//srand(static_cast<unsigned int>(time(0)));
+
 void InitFishParams()
 {
 	for (int i = 0; i < numGreyFishes; i++)
 	{
 		Fish fish;
-		fish.SetPos(GeneratePosition()); 
+
+		// Set random position within the cube
+		fish.SetPos(GeneratePosition());
+
+		// Set random size
 		fish.SetFishSize(0.1f);
+
+		// Set random initial orientation
+		float randomYaw = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 360.0f); // Yaw between 0 and 360 degrees
+		float randomPitch = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 90.0f) - 45.0f; // Pitch between -45 and 45 degrees
+		float randomRoll = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 360.0f); // Roll between 0 and 360 degrees
+
+		fish.SetYaw(randomYaw);
+		fish.SetPitch(randomPitch);
+		fish.SetRoll(randomRoll);
+
+		// Update the fish's vectors based on the initial orientation
+		fish.InitialFishVectors();
+
+		// Set initial movement timer
 		float timer = 0.0f;
 		fish.SetFishMovementTimer(timer);
+
+		// Add fish to the list
 		fishes.push_back(fish);
 	}
 }
@@ -182,8 +200,6 @@ void resetFishTimer(int index)
 
 void UpdateFishPosition(int index, EFishMovementType direction)
 {
-	// Move the fish in the specified direction
-
 	fishes[index].Move(direction); 
 	fishes[index].MoveFish(deltaTime);
 	float currFishTimer = fishes[index].GetFishMovementTimer();
@@ -201,9 +217,7 @@ void UpdateFishPosition(int index, EFishMovementType direction)
 float roiRadius = 5.0f;
 glm::vec3 fishPosition = glm::vec3(0.0f, 3.0f, 0.0f);
 
-// Check if camera is within ROI
 bool IsCameraWithinROI(Camera* camera, const glm::vec3& fishPosition, float roiRadius) {
-	// Calculate distance between camera position and fish position
 	glm::vec3 cameraPosition = camera->GetPosition();
 	float distance = glm::distance(cameraPosition, fishPosition);
 	return distance < roiRadius;
@@ -556,7 +570,7 @@ void RenderScene(Shader& shader)
 	starfishModelMatrix = glm::translate(starfishModelMatrix, glm::vec3(-1.0f, 0.0f, -1.0f)); // Ajustează poziționarea
 	starfishModelMatrix = glm::scale(starfishModelMatrix, glm::vec3(0.1f, 0.1f, 0.1f)); // Ajustează scalarea
 
-	// Desenează modelul Starfish
+	//Starfish
 	starFishObj->RenderModel(shader, starfishModelMatrix);
 
 	fishModel = glm::mat4(1.0f);
@@ -570,22 +584,10 @@ void RenderScene(Shader& shader)
 		0.1f, 0.1f, 0.1f
 	)); // Scale uniformly
 
-
-	// Define animation parameters
-	float time = glfwGetTime(); // Get current time
-	float fishSpeed = 1.0f; // Speed of fish animation
-
-	// Define circle parameters
-	float radius = 8.0f; // Radius of the circular path
-	float angularSpeed = 0.1f; // Angular speed of the fish's movement
-
-	// Number of fishes in the school
-	float spacing = 0.2f; // Spacing between fishes
-
-	// Loop to create the fish school
+	//Gray Fishes
 	for (int i = 0; i < numGreyFishes; ++i) {
-		glm::mat4 greyFish = glm::mat4(1.0f); // Reset fish model matrix
-
+		direction = EFishMovementType::LEFT;
+		glm::mat4 greyFish = glm::mat4(1.0f);
 		float currFishTimer = fishes[i].GetFishMovementTimer();
 		if (currFishTimer <= 0) {
 			resetFishTimer(i);
@@ -593,34 +595,23 @@ void RenderScene(Shader& shader)
 			movementIndex++;
 			currFishTimer = fishes[i].GetFishMovementTimer();
 
-			// Start a new movement with the current direction and total time
 			fishes[i].StartNewMovement(currFishTimer, direction);
 		}
 
-		// Move the fish based on the current speed and direction
-		float deltaTime = 0.1f; // Example delta time, adjust as needed
+		float deltaTime = 0.1f;
 		fishes[i].MoveFish(deltaTime);
-
-		// Update the remaining fish movement timer
 		fishes[i].SetFishMovementTimer(currFishTimer - deltaTime);
 
-		// Get the updated fish position
 		auto pos = fishes[i].GetPos();
 
-		// Update the fish's model matrix with position, rotation, and scale
-		greyFish = glm::translate(greyFish, pos); // Set initial position of fish
-		greyFish = glm::rotate(greyFish, glm::radians(90.0f), glm::vec3(0, 1, 0)); // Rotate fish to face forward
-		greyFish = glm::rotate(greyFish, -glm::radians(fishes[i].GetYaw()), glm::vec3(0, 1, 0)); // Rotate fish based on yaw
-		greyFish = glm::rotate(greyFish, -glm::radians(fishes[i].GetPitch()), glm::vec3(1, 0, 0)); // Rotate fish based on pitch
-		greyFish = glm::scale(greyFish, glm::vec3(0.1f, 0.1f, 0.1f)); // Scale fish
+		greyFish = glm::translate(greyFish, pos); 
+		greyFish = glm::rotate(greyFish, glm::radians(90.0f), glm::vec3(0, 1, 0)); 
+		greyFish = glm::rotate(greyFish, -glm::radians(fishes[i].GetYaw()), glm::vec3(0, 1, 0)); 
+		greyFish = glm::rotate(greyFish, -glm::radians(fishes[i].GetPitch()), glm::vec3(1, 0, 0)); 
+		greyFish = glm::scale(greyFish, glm::vec3(0.1f, 0.1f, 0.1f)); 
 
-		// Calculate new position for bubble
 		glm::vec3 bubbleInitialPos = pos;
-
-		// Render the fish object
-		grayFishObj->RenderModel(shader, greyFish); // Draw fish object
-
-		// Update the bubble position
+		grayFishObj->RenderModel(shader, greyFish); 
 		bubbles[i].newPos = bubbleInitialPos;
 
 	}
@@ -655,8 +646,6 @@ void RenderScene(Shader& shader)
 		fishModel = glm::rotate(fishModel, glm::radians(fishAngleZ), glm::vec3(0.0f, 0.0f, 1.0f));
 		fishModel = glm::rotate(fishModel, glm::radians(fishAngleY), glm::vec3(0.0f, 1.0f, 0.0f));
 	}
-
-
 
 	glEnable(GL_CULL_FACE);
 

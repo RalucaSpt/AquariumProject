@@ -35,10 +35,9 @@ Fish::Fish(const glm::vec3& initialPos, Model* model)
     currentYaw = 0.0f;
     m_timeLeft = 3.0f;
     InitFishMovements();
-    UpdateFishVectors(); // Initialize direction vectors
+    UpdateFishVectors();
 }
 
-// Assignment operator
 Fish& Fish::operator=(const Fish& other)
 {
     if (this != &other)
@@ -61,31 +60,43 @@ Fish& Fish::operator=(const Fish& other)
     return *this;
 }
 
-// Set position
+
+
 void Fish::SetPos(const glm::vec3& pos)
 {
     m_position = pos;
 }
 
-// Get position
 glm::vec3 Fish::GetPos() const
 {
     return m_position;
 }
 
-// Set model
 void Fish::setModel(Model* model)
 {
     m_fish = model;
 }
 
-// Get model
 Model* Fish::getModel()
 {
     return m_fish;
 }
 
-// Move fish based on direction
+void Fish::InitialFishVectors()
+{
+	float x = glm::radians(m_yaw);
+	float y = glm::radians(m_pitch);
+	float z = glm::radians(m_roll);
+
+	m_forward.x = cos(x) * cos(y);
+	m_forward.y = sin(y);
+	m_forward.z = sin(x) * cos(y);
+	m_forward = glm::normalize(m_forward);
+
+	m_right = glm::normalize(glm::cross(m_forward, m_worldUp));
+	m_up = glm::normalize(glm::cross(m_right, m_forward));
+}
+
 void Fish::Move(EFishMovementType direction)
 {
     switch (direction)
@@ -114,35 +125,20 @@ void Fish::Move(EFishMovementType direction)
     UpdateFishVectors();
 }
 
-// Get yaw
 float Fish::GetYaw() const
 {
     return m_yaw;
 }
 
-// Move fish based on the current speed and yaw
-//void Fish::MoveFish(float deltaTime)
-//{
-//    float velocity = currentSpeed * deltaTime;
-//    m_position += m_forward * velocity;
-//    // Reset speed after moving
-//    currentSpeed *= 0.05f;
-//}
-
 void Fish::MoveFish(float deltaTime) {
-    // Check if the fish is currently in motion and if there's time left to move
+   
     if (currentSpeed != 0.0f && m_timeLeft > 0.0f) {
-        // Calculate the distance the fish should move in the current frame
         float distance = currentSpeed * deltaTime;
         glm::vec3 movement = m_forward * distance;
 
-        // Update the fish's position
         m_position += movement;
-
-        // Reduce the remaining movement time
         m_timeLeft -= deltaTime;
 
-        // If the remaining movement time becomes non-positive, stop the fish
         if (m_timeLeft <= 0.0f) {
             currentSpeed = 0.0f; // Reset speed to zero
             m_timeLeft = 0.0f; // Ensure time left is not negative
@@ -153,7 +149,6 @@ void Fish::MoveFish(float deltaTime) {
 void Fish::SetDirection(EFishMovementType direction) {
     switch (direction) {
     case EFishMovementType::FORWARD:
-        // Set forward direction based on current yaw and pitch
         m_forward = glm::vec3(0.0f, 0.0f, 1.0f);
         break;
     case EFishMovementType::UP:
@@ -161,6 +156,7 @@ void Fish::SetDirection(EFishMovementType direction) {
         m_forward = glm::vec3(0.0f, 1.0f, 0.0f);
         break;
     case EFishMovementType::DOWN:
+        m_pitch = std::max(m_pitch - 1.0f, -45.0f);
         m_forward = glm::vec3(0.0f, -1.0f, 0.0f);
         break;
     case EFishMovementType::LEFT:
@@ -175,7 +171,6 @@ void Fish::SetDirection(EFishMovementType direction) {
         break;
     }
 
-    // Update direction vectors based on the yaw and pitch for all directions
     UpdateFishVectors();
 }
 
@@ -185,41 +180,31 @@ void Fish::StartNewMovement(float totalTime, EFishMovementType direction) {
     m_fishMovementTimer = totalTime;
     m_timeLeft = totalTime;
 
-    // Set the direction based on the input parameter
     SetDirection(direction);
 
-    // Set a new speed
-    SetSpeed(0.1f); // You can adjust the speed as needed
+    SetSpeed(0.1f);
 }
 
-
-
-
-// Get fish size
 float Fish::GetFishSize() const
 {
     return m_fishSize;
 }
 
-// Get fish movement timer
 float Fish::GetFishMovementTimer() const
 {
     return m_fishMovementTimer;
 }
 
-// Set fish size
 void Fish::SetFishSize(float size)
 {
     m_fishSize = size;
 }
 
-// Set fish movement timer
 void Fish::SetFishMovementTimer(float timer)
 {
     m_fishMovementTimer = timer;
 }
 
-// Update direction vectors based on yaw and pitch
 void Fish::UpdateFishVectors()
 {
     float x = glm::radians(m_yaw);
@@ -233,6 +218,7 @@ void Fish::UpdateFishVectors()
     m_right = glm::normalize(glm::cross(m_forward, m_worldUp));
     m_up = glm::normalize(glm::cross(m_right, m_forward));
 }
+
 
 void Fish::InitFishMovements()
 {
@@ -296,6 +282,21 @@ float Fish::GetSpeed() const
 void Fish::SetSpeed(float speed)
 {
     currentSpeed = speed;
+}
+
+void Fish::SetYaw(float yaw)
+{
+	m_yaw = yaw;
+}
+
+void Fish::SetPitch(float pitch)
+{
+	m_pitch = pitch;
+}
+
+void Fish::SetRoll(float roll)
+{
+	m_roll = roll;
 }
 
 EFishMovementType Fish::GetMove(int index)

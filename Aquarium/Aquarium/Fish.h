@@ -31,6 +31,8 @@ public:
 	void setModel(Model* model);
 	Model* getModel();
 
+	void InitialFishVectors();
+
 
 	void Move(EFishMovementType direction);
 
@@ -54,6 +56,14 @@ public:
 	float GetSpeed() const;
 
 	void SetSpeed(float speed);
+
+	void SetYaw(float yaw);
+
+	void SetPitch(float pitch);
+
+	void SetRoll(float roll);
+
+
 	EFishMovementType GetMove(int index);
 private:
 	void UpdateFishVectors();
