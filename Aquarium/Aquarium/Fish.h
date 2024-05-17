@@ -5,19 +5,19 @@
 enum class EFishMovementType
 {
 	UNKNOWN,
-	FORWARD,
-	BACKWARD,
-	LEFT,
-	RIGHT,
-	UP,
-	DOWN
+	FORWARD, //0
+	BACKWARD,//1
+	LEFT, //2
+	RIGHT, //3
+	UP,//4
+	DOWN//5
 };
 
 
 class Fish
 {
 public:
-	float m_timeLeft;
+	float m_timeLeft = 3.0f;
 
 	Fish()=default;
 	Fish(const Fish& other);
@@ -37,7 +37,7 @@ public:
 	void MoveFish(float deltaTime);
 
 	void SetDirection(EFishMovementType direction);
-	void StartNewMovement(float totalTime);
+	void StartNewMovement(float totalTime, EFishMovementType direction);
 
 	float GetFishSize() const;
 	float GetFishMovementTimer() const;
@@ -54,9 +54,10 @@ public:
 	float GetSpeed() const;
 
 	void SetSpeed(float speed);
+	EFishMovementType GetMove(int index);
 private:
 	void UpdateFishVectors();
-
+	void InitFishMovements();
 
 	Model* m_fish;
 	glm::vec3 m_position;
@@ -81,6 +82,8 @@ private:
 	float m_fishMovementTimer = 0.f;
 
 	float m_fishSize = 1.f;
+
+	std::vector<EFishMovementType> m_fishMovements;
 };
 
 
