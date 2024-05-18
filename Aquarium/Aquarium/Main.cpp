@@ -69,24 +69,24 @@ float verticalSpeed = 0.2f;
 float bubbleTime = 0.0f;
 std::vector<BubbleParams> bubbles;
 
-void DrawColoredBorder(Model& fishObjModel, const glm::mat4& fishModel, bool transparent) {
-	const glm::vec3 borderColor = glm::vec3(1.0f, 0.0f, 0.0f); // Red color
-
-	glm::mat4 borderModel = fishModel;
-	Shader borderShader("../Shaders/Border.vs", "../Shaders/Border.fs");
-	borderShader.Use();
-
-	borderShader.SetMat4("model", borderModel);
-	borderShader.SetMat4("view", pCamera->GetViewMatrix());
-	borderShader.SetMat4("projection", pCamera->GetProjectionMatrix());
-	borderShader.SetVec3("borderColor", borderColor);
-	if (transparent) {
-		borderShader.SetVec4("borderColor", glm::vec4(borderColor, 0.0f));
-	}
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	fishObjModel.RenderModel(borderShader);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-}
+//void DrawColoredBorder(Model& fishObjModel, const glm::mat4& fishModel, bool transparent) {
+//	const glm::vec3 borderColor = glm::vec3(1.0f, 0.0f, 0.0f); // Red color
+//
+//	glm::mat4 borderModel = fishModel;
+//	Shader borderShader("../Shaders/Border.vs", "../Shaders/Border.fs");
+//	borderShader.Use();
+//
+//	borderShader.SetMat4("model", borderModel);
+//	borderShader.SetMat4("view", pCamera->GetViewMatrix());
+//	borderShader.SetMat4("projection", pCamera->GetProjectionMatrix());
+//	borderShader.SetVec3("borderColor", borderColor);
+//	if (transparent) {
+//		borderShader.SetVec4("borderColor", glm::vec4(borderColor, 0.0f));
+//	}
+//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+//	fishObjModel.RenderModel(borderShader);
+//	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//}
 
 void SwitchToFishPerspective(Camera* camera, const glm::vec3& fishPosition)
 {
@@ -218,7 +218,7 @@ void UpdateFishPosition(int index, EFishMovementType direction)
 
 float roiRadius = 5.0f;
 glm::vec3 fishPosition = glm::vec3(0.0f, 3.0f, 0.0f);
-
+Fish movingFish(fishPosition);
 bool IsCameraWithinROI(Camera* camera, const glm::vec3& fishPosition, float roiRadius) {
 	glm::vec3 cameraPosition = camera->GetPosition();
 	float distance = glm::distance(cameraPosition, fishPosition);
@@ -390,7 +390,7 @@ int main(int argc, char** argv)
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		shadowMappingShader.Use();
 		glm::mat4 projection = pCamera->GetProjectionMatrix();
-		glm::mat4 view = pCamera->GetViewMatrix();
+		glm::mat4 view = pCamera->GetViewMatrix(movingFish);
 		shadowMappingShader.SetMat4("projection", projection);
 		shadowMappingShader.SetMat4("view", view);
 		shadowMappingShader.SetFloat("hue", floorHue);
@@ -406,26 +406,25 @@ int main(int argc, char** argv)
 		glDisable(GL_CULL_FACE);
 		RenderScene(shadowMappingShader);
 
-		if (IsCameraWithinROI(pCamera, fishPosition, roiRadius) && !isInFishPerspective)
-		{
-			const glm::vec3 borderColor = glm::vec3(1.0f, 0.0f, 0.0f); // Red color
+		//if (IsCameraWithinROI(pCamera, fishPosition, roiRadius) && !isInFishPerspective)
+		//{
+		//	const glm::vec3 borderColor = glm::vec3(1.0f, 0.0f, 0.0f); // Red color
 
-			glm::mat4 borderModel = fishModel;
-			Shader borderShader("../Shaders/Border.vs", "../Shaders/Border.fs");
-			borderShader.Use();
+		//	glm::mat4 borderModel = fishModel;
+		//	Shader borderShader("../Shaders/Border.vs", "../Shaders/Border.fs");
+		//	borderShader.Use();
 
-			borderShader.SetMat4("model", borderModel);
-			borderShader.SetMat4("view", pCamera->GetViewMatrix());
-			borderShader.SetMat4("projection", pCamera->GetProjectionMatrix());
-			borderShader.SetVec3("borderColor", borderColor);
-			if (isTransparent) {
-				borderShader.SetVec4("borderColor", glm::vec4(borderColor, 0.0f));
-			}
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			fishObj->RenderModel(borderShader);
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		}
-
+		//	borderShader.SetMat4("model", borderModel);
+		//	borderShader.SetMat4("view", pCamera->GetViewMatrix());
+		//	borderShader.SetMat4("projection", pCamera->GetProjectionMatrix());
+		//	borderShader.SetVec3("borderColor", borderColor);
+		//	if (isTransparent) {
+		//		borderShader.SetVec4("borderColor", glm::vec4(borderColor, 0.0f));
+		//	}
+		//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		//	fishObj->RenderModel(borderShader);
+		//	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		//}
 
 		hue = 1;
 		floorHue = 1;
