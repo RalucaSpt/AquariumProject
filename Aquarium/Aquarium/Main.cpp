@@ -24,7 +24,7 @@ auto t_start = std::chrono::high_resolution_clock::now();
 Camera* pCamera;
 std::unique_ptr<Mesh> floorObj, cubeObj;
 std::unique_ptr<Model> starFishObj, bubbleObj, sandDune, coral, plant, anchor, water, skullObj, treasureChestObj;
-std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, angelFishObj, blueGreenFishObj, rainbowFishObj, blackMoorFishObj, longFinFishObj, doryFishObj, yellowTangFishObj, lineWrasseFishObj, americanFlagFishObj;
+std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, angelFishObj, blueGreenFishObj, rainbowFishObj, blackMoorFishObj, longFinFishObj, doryFishObj, yellowTangFishObj, lineWrasseFishObj, americanFlagFishObj, selectedFishObj;
 float timeAcceleration = 0.1f;
 glm::vec3 zrotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
@@ -88,19 +88,19 @@ std::vector<BubbleParams> bubbles;
 //	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 //}
 
-void SwitchToFishPerspective(Camera* camera, const glm::vec3& fishPosition)
-{
-	glm::vec3 offset = glm::vec3(0.0f, 1.5f, -3.0f);
-	camera->SetPosition(fishPosition + offset);
-	glm::vec3 direction = glm::normalize(fishPosition - camera->GetPosition());
-
-	float yaw = glm::degrees(atan2(direction.x, direction.z)) + 90;
-	float pitch = glm::degrees(asin(direction.y));
-
-	camera->SetYaw(yaw);
-	camera->SetPitch(pitch);
-
-}
+//void SwitchToFishPerspective(Camera* camera, const glm::vec3& fishPosition)
+//{
+//	glm::vec3 offset = glm::vec3(0.0f, 1.5f, -3.0f);
+//	camera->SetPosition(fishPosition + offset);
+//	glm::vec3 direction = glm::normalize(fishPosition - camera->GetPosition());
+//
+//	float yaw = glm::degrees(atan2(direction.x, direction.z)) + 90;
+//	float pitch = glm::degrees(asin(direction.y));
+//
+//	camera->SetYaw(yaw);
+//	camera->SetPitch(pitch);
+//
+//}
 
 void generateBubblesParams()
 {
@@ -230,31 +230,7 @@ bool isInFishPerspective = false;
 bool isTransparent = false;
 
 glm::mat4 fishModel = glm::mat4(1.0f);
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-	if (key == GLFW_KEY_A && action == GLFW_PRESS) {
 
-	}
-	if (key == GLFW_KEY_F && action == GLFW_PRESS) {
-		if (IsCameraWithinROI(pCamera, fishPosition, roiRadius)) {
-			if (keyPress % 2 == 0) {
-				SwitchToFishPerspective(pCamera, fishPosition);
-				isInFishPerspective = true;
-			}
-			else {
-				pCamera->SetPosition(glm::vec3(0.0, 1.0, 3.0));
-				isInFishPerspective = false;
-			}
-			isTransparent = !isTransparent;
-			keyPress++;
-		}
-		else if (keyPress % 2 == 1) {
-			pCamera->SetPosition(glm::vec3(0.0, 1.0, 3.0));
-			keyPress++;
-			isInFishPerspective = false;
-		}
-	}
-}
 
 float fishAngleY = 0.0f;
 float fishAngleZ = 0.0f;
@@ -299,7 +275,7 @@ int main(int argc, char** argv)
 	Shader shadowMappingShader("../Shaders/ShadowMapping.vs", "../Shaders/ShadowMapping.fs");
 	Shader shadowMappingDepthShader("../Shaders/ShadowMappingDepth.vs", "../Shaders/ShadowMappingDepth.fs");
 	Shader borderShader("../Shaders/Border.vs", "../Shaders/Border.fs");
-	const unsigned int SHADOW_WIDTH = 4000, SHADOW_HEIGHT = 4000;
+	const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 	unsigned int depthMapFBO;
 	glGenFramebuffers(1, &depthMapFBO);
 	// create depth texture
@@ -327,7 +303,7 @@ int main(int argc, char** argv)
 
 	LoadObjects();
 
-	glm::vec3 lightPos(-2.0f, 14.0f, -1.0f);
+	glm::vec3 lightPos(-2.0f, 25.0f, -1.0f);
 	float hue = 1.0;
 	float floorHue = 0.9;
 	bool rotateLight = true;
@@ -345,7 +321,7 @@ int main(int argc, char** argv)
 		// input
 		// -----
 		ProcessKeyboard(window);
-
+		movingFish.MoveMovingFish(deltaTime);
 		// render
 		// ------
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -406,26 +382,6 @@ int main(int argc, char** argv)
 		glDisable(GL_CULL_FACE);
 		RenderScene(shadowMappingShader);
 
-		//if (IsCameraWithinROI(pCamera, fishPosition, roiRadius) && !isInFishPerspective)
-		//{
-		//	const glm::vec3 borderColor = glm::vec3(1.0f, 0.0f, 0.0f); // Red color
-
-		//	glm::mat4 borderModel = fishModel;
-		//	Shader borderShader("../Shaders/Border.vs", "../Shaders/Border.fs");
-		//	borderShader.Use();
-
-		//	borderShader.SetMat4("model", borderModel);
-		//	borderShader.SetMat4("view", pCamera->GetViewMatrix());
-		//	borderShader.SetMat4("projection", pCamera->GetProjectionMatrix());
-		//	borderShader.SetVec3("borderColor", borderColor);
-		//	if (isTransparent) {
-		//		borderShader.SetVec4("borderColor", glm::vec4(borderColor, 0.0f));
-		//	}
-		//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		//	fishObj->RenderModel(borderShader);
-		//	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		//}
-
 		hue = 1;
 		floorHue = 1;
 		glfwSwapBuffers(window);
@@ -441,18 +397,45 @@ void ProcessKeyboard(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		pCamera->ProcessKeyboard(FORWARD, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		pCamera->ProcessKeyboard(BACKWARD, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		pCamera->ProcessKeyboard(LEFT, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		pCamera->ProcessKeyboard(RIGHT, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-		pCamera->ProcessKeyboard(UP, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-		pCamera->ProcessKeyboard(DOWN, deltaTime);
+	if (pCamera->GetCameraMode() == ThirdPerson)
+	{
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			movingFish.Move(EFishMovementType::FORWARD);
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			movingFish.Move(EFishMovementType::BACKWARD);
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			movingFish.Move(EFishMovementType::LEFT);
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			movingFish.Move(EFishMovementType::RIGHT);
+		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+			movingFish.Move(EFishMovementType::UP);
+		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+			movingFish.Move(EFishMovementType::DOWN);
+	}
+	else if (pCamera->GetCameraMode() == FreeLook)
+	{
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			pCamera->ProcessKeyboard(FORWARD, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			pCamera->ProcessKeyboard(BACKWARD, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			pCamera->ProcessKeyboard(LEFT, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			pCamera->ProcessKeyboard(RIGHT, deltaTime);
+	}
+	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
+	{
+		pCamera->SetCameraMode(FreeLook);
+		isInFishPerspective = false;
+	}
+	if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
+	{
+		if (IsCameraWithinROI(pCamera, movingFish.GetPos(), roiRadius))
+		{
+			pCamera->SetCameraMode(ThirdPerson);
+			isInFishPerspective = true;
+		}
+	}
 
 
 	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
@@ -461,6 +444,7 @@ void ProcessKeyboard(GLFWwindow* window)
 		pCamera->Reset(width, height);
 	}
 }
+
 
 void LoadObjects()
 {
@@ -524,6 +508,7 @@ void LoadObjects()
 	stbi_set_flip_vertically_on_load(false);
 
 	// Objects loading
+	selectedFishObj = std::make_unique<Model>("../Models/Fish/selectedFish.obj", false);
 	cubeObj = std::make_unique<Mesh>(cubeVertices, std::vector<unsigned int>(), std::vector<Texture>{cubeTexture});
 	fishObj = std::make_unique<Model>("../Models/Fish/fish.obj", false);
 	goldFishObj = std::make_unique<Model>("../Models/GoldFish/goldFish.obj", false);
@@ -562,11 +547,17 @@ void RenderScene(Shader& shader)
 
 	//static fish
 	fishModel = glm::mat4(1.0f);
-	fishModel = glm::translate(fishModel, fishPosition);
-	fishModel = glm::rotate(fishModel, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis
-	fishModel = glm::rotate(fishModel, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
-	fishModel = glm::scale(fishModel, glm::vec3(0.1f, 0.1f, 0.1f)); 
-	fishObj->RenderModel(shader, fishModel);
+	fishModel = glm::translate(fishModel, movingFish.GetPos());
+	fishModel = glm::rotate(fishModel, glm::radians(movingFish.GetYaw()), glm::vec3(0, 1, 0));
+	fishModel = glm::rotate(fishModel, -glm::radians(movingFish.GetPitch()), glm::vec3(1, 0, 0));
+	//rotate around z-axis
+	fishModel = glm::rotate(fishModel, glm::radians(
+		90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis
+	fishModel = glm::rotate(fishModel, glm::radians(
+		90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
+	fishModel = glm::scale(fishModel, glm::vec3(
+		0.1f, 0.1f, 0.1f
+	)); // Scale uniformly
 
 
 	//Fishes
@@ -698,6 +689,11 @@ void RenderScene(Shader& shader)
 	}
 
 	glDisable(GL_CULL_FACE);
+	if (IsCameraWithinROI(pCamera, movingFish.GetPos(), roiRadius) && !isInFishPerspective)
+	{
+		selectedFishObj->RenderModel(shader, fishModel);
+	}
+	else fishObj->RenderModel(shader, fishModel);
 
 	floorObj->RenderMesh(shader);
 
