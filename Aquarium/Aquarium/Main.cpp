@@ -23,7 +23,7 @@ auto t_start = std::chrono::high_resolution_clock::now();
 
 Camera* pCamera;
 std::unique_ptr<Mesh> floorObj, cubeObj;
-std::unique_ptr<Model> starFishObj, bubbleObj, sandDune, coral, plant, anchor;
+std::unique_ptr<Model> starFishObj, bubbleObj, sandDune, coral, plant, anchor, water;
 std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, angelFishObj;
 float timeAcceleration = 0.1f;
 glm::vec3 zrotation = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -534,6 +534,7 @@ void LoadObjects()
 	starFishObj = std::make_unique<Model>("../Models/StarFish/starFish.obj", false);
 	bubbleObj = std::make_unique<Model>("../Models/Bubble/bubble.obj", false);
 	sandDune = std::make_unique<Model>("../Models/BigFauna/fauna.obj", false);
+	water  = std::make_unique<Model>("../Models/Water/water.obj", false);
 	floorObj = std::make_unique<Mesh>(floorVertices, std::vector<unsigned int>(), std::vector<Texture>{floorTexture});
 }
 
@@ -543,10 +544,6 @@ int movementIndex = 0;
 
 void RenderScene(Shader& shader)
 {
-	//glm::mat4 waterModelMatrix = glm::mat4(1.0f);
-	//waterModelMatrix = glm::translate(waterModelMatrix, glm::vec3(0.0f, -12.f, 0.0f));
-	//waterModelMatrix = glm::scale(waterModelMatrix, glm::vec3(0.14f, 1.f, 0.14f));
-	////water->RenderModel(shader, waterModelMatrix);
 
 	//Starfish
 	glm::mat4 starfishModelMatrix = glm::mat4(1.0f);
@@ -651,13 +648,20 @@ void RenderScene(Shader& shader)
 		bubbleModelMatrix = glm::scale(bubbleModelMatrix, glm::vec3(bubbles[i].size, bubbles[i].size, bubbles[i].size));
 		bubbleObj->RenderModel(shader, bubbleModelMatrix);
 	}
+
 	glDisable(GL_CULL_FACE);
+
+
 	floorObj->RenderMesh(shader);
 	glm::mat4 cubeModelMatrix = glm::mat4(1.0f);
 	cubeModelMatrix = glm::translate(cubeModelMatrix, glm::vec3(0.0f, 0.f, 0.0f));
 	cubeModelMatrix = glm::scale(cubeModelMatrix, glm::vec3(2.f, 1.0f, 2.f));
 	cubeObj->RenderMesh(shader, cubeModelMatrix);
 
+	glm::mat4 waterModelMatrix = glm::mat4(1.0f);
+	waterModelMatrix = glm::translate(waterModelMatrix, glm::vec3(0.0f, -12.f, 0.0f));
+	waterModelMatrix = glm::scale(waterModelMatrix, glm::vec3(5.f, 5.f, 5.f));
+	water->RenderModel(shader, waterModelMatrix);
 }
 
 
