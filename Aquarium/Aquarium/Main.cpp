@@ -610,7 +610,7 @@ void RenderScene(Shader& shader)
 
 	glm::mat4 sandDuneModelMatrix = glm::mat4(1.0f);
 	sandDuneModelMatrix = glm::translate(sandDuneModelMatrix, glm::vec3(0.0f, -12.f, 0.0f)); 
-	sandDuneModelMatrix = glm::scale(sandDuneModelMatrix, glm::vec3(5.f, 5.f, 5.f));
+	sandDuneModelMatrix = glm::scale(sandDuneModelMatrix, glm::vec3(12.f, 9.f, 12.f));
 	sandDune->RenderModel(shader, sandDuneModelMatrix);
 
 	glm::mat4 anchorModelMatrix = glm::mat4(1.0f);
@@ -651,17 +651,17 @@ void RenderScene(Shader& shader)
 
 	glDisable(GL_CULL_FACE);
 
-
 	floorObj->RenderMesh(shader);
-	glm::mat4 cubeModelMatrix = glm::mat4(1.0f);
-	cubeModelMatrix = glm::translate(cubeModelMatrix, glm::vec3(0.0f, 0.f, 0.0f));
-	cubeModelMatrix = glm::scale(cubeModelMatrix, glm::vec3(2.f, 1.0f, 2.f));
-	cubeObj->RenderMesh(shader, cubeModelMatrix);
 
 	glm::mat4 waterModelMatrix = glm::mat4(1.0f);
 	waterModelMatrix = glm::translate(waterModelMatrix, glm::vec3(0.0f, -12.f, 0.0f));
-	waterModelMatrix = glm::scale(waterModelMatrix, glm::vec3(5.f, 5.f, 5.f));
+	waterModelMatrix = glm::scale(waterModelMatrix, glm::vec3(12.f, 8.f, 12.f));
 	water->RenderModel(shader, waterModelMatrix);
+
+	glm::mat4 cubeModelMatrix = glm::mat4(1.0f);
+	cubeModelMatrix = glm::scale(cubeModelMatrix, glm::vec3(5.f, 4.0f, 5.f));
+	cubeModelMatrix = glm::translate(cubeModelMatrix, glm::vec3(0.0f, 9.5f, 0.0f));
+	cubeObj->RenderMesh(shader, cubeModelMatrix);
 }
 
 
