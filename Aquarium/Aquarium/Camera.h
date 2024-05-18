@@ -3,6 +3,8 @@
 
 #include <GLM.hpp>
 
+#include "Fish.h"
+
 enum ECameraMovementType
 {
 	UNKNOWN,
@@ -28,7 +30,7 @@ private:
 	const float PITCH = 0.0f;
 	const float FOV = 45.0f;
 	glm::vec3 startPosition;
-	CameraMode mode;
+	CameraMode mode = CameraMode::FreeLook;
 public:
 	Camera(const int width, const int height, const glm::vec3& position);
 
@@ -38,7 +40,7 @@ public:
 	void Reset(const int width, const int height);
 	void Reshape(int windowWidth, int windowHeight);
 
-	const glm::mat4 GetViewMatrix() const;
+	glm::mat4 GetViewMatrix(Fish& fish);
 	const glm::mat4 GetProjectionMatrix() const;
 
 	void ProcessKeyboard(ECameraMovementType direction, double deltaTime);

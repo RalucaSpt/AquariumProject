@@ -5,6 +5,7 @@
 #include <GL/glew.h>
 
 
+
 Camera::Camera(const int width, const int height, const glm::vec3& position)
 	: startPosition(position)
 {
@@ -56,10 +57,51 @@ void Camera::Reshape(int windowWidth, int windowHeight)
 	// Adaugare log pentru debug
 }
 
-const glm::mat4 Camera::GetViewMatrix() const
+glm::mat4 Camera::GetViewMatrix(Fish& fish)
 {
-	// Returns the View Matrix
-	return glm::lookAt(position, position + forward, up);
+	if (mode == FreeLook)
+		return glm::lookAt(position, position + forward, up);
+	float planeYaw = fish.GetYaw() - 90.f;
+	float planePitch = fish.GetPitch();
+	if (mode == ThirdPerson)
+	{
+
+		//reverting camera pos
+		if (yaw != planeYaw)
+		{
+			if ((yaw >= planeYaw && yaw <= planeYaw + 180.f) ||
+				(yaw >= planeYaw - 359.999f && yaw <= planeYaw - 180.0f))
+				yaw -= 0.3f;
+			else yaw += 0.3f;
+
+			if (yaw >= planeYaw + 360)
+				yaw -= 360;
+			if (yaw <= planeYaw - 360)
+				yaw += 360;
+
+			if (std::abs(yaw - planeYaw) < 0.5 || std::abs(yaw + planeYaw + 180) < 0.5)
+				yaw = planeYaw;
+		}
+		//std::cout << planeYaw << " " << yaw << '\n';
+
+		if (pitch != -planePitch)
+		{
+			if (pitch >= -planePitch)
+				pitch -= 0.3f;
+			else
+				pitch += 0.3f;
+
+			if ((int)pitch == (int)-planePitch)
+				pitch = -planePitch;
+		}
+		float distance = 10.f;
+		float z = distance * cos(glm::radians(pitch)) * sin(glm::radians(-yaw));
+		float y = distance * sin(glm::radians(pitch));
+		float x = distance * cos(glm::radians(pitch)) * cos(glm::radians(yaw));
+
+		return glm::lookAt(fish.GetPos() + glm::vec3(-x, y, -z) + glm::vec3(0.0f, 3.0f, 0.0f), fish.GetPos() + glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.1f, 0.0f));
+
+	}
 }
 
 const glm::mat4 Camera::GetProjectionMatrix() const
