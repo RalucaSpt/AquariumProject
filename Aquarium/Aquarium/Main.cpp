@@ -24,7 +24,8 @@ auto t_start = std::chrono::high_resolution_clock::now();
 Camera* pCamera;
 std::unique_ptr<Mesh> floorObj, cubeObj;
 std::unique_ptr<Model> starFishObj, bubbleObj, sandDune, coral, plant, anchor, water, skullObj, treasureChestObj;
-std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, angelFishObj, blueGreenFishObj, rainbowFishObj, blackMoorFishObj, longFinFishObj, doryFishObj, yellowTangFishObj, lineWrasseFishObj, americanFlagFishObj, selectedFishObj;
+std::unique_ptr<Model> clownFishObj, goldFishObj, coralBeautyFishObj, grayFishObj, angelFishObj,
+						blueGreenFishObj, rainbowFishObj, blackMoorFishObj, longFinFishObj, doryFishObj, yellowTangFishObj, lineWrasseFishObj, americanFlagFishObj, selectedFishObj;
 float timeAcceleration = 0.1f;
 glm::vec3 zrotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
@@ -108,7 +109,7 @@ void generateBubblesParams()
 	{
 		BubbleParams bubble;
 		bubble.position = glm::vec3(static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 0.1f)));
-		bubble.size = rand() % 10 / 100.0f;
+		bubble.size = 0.1f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (0.5f - 0.1f)));
 		bubble.speed = rand() % 10 / 100.0f;
 		bubble.startTime = rand() % 10;
 		bubble.radius = rand() % 10 / 10.0f;
@@ -129,7 +130,7 @@ glm::vec3 bubblePosition;
 
 void resetBubblePosition(int index) {
 	bubbles[index].position = bubbles[index].newPos;
-	bubbles[index].size = rand() % 10 / 100.0f;
+	bubbles[index].size = 0.1f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (0.5f - 0.1f)));
 	bubbles[index].startTime = 0.0f;
 }
 
@@ -145,7 +146,7 @@ void updateBubblePosition(int index) {
 	bubbles[index].size -= 0.0001f;
 	bubbles[index].startTime += 0.01f;
 
-	if (bubbles[index].size <= 0.0f)
+	if (bubbles[index].size <= 0.1f)
 	{
 		if (elapsedTime.count() < 2.0)
 		{
@@ -154,6 +155,27 @@ void updateBubblePosition(int index) {
 		}
 	}
 	bubbles[index].position = bubbles[index].newPos + glm::vec3(xSpiral, y, zSpiral);
+}
+
+void bubbleFlurry(int numBubbles, glm::vec3 position) {
+	for (int i = 0; i < numBubbles; ++i) {
+		BubbleParams bubble;
+
+		// Generate a random offset from the given position
+		float offsetX = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 2.0f) - 1.0f;
+		float offsetY = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 2.0f) - 1.0f;
+		float offsetZ = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 2.0f) - 1.0f;
+
+		bubble.position = position + glm::vec3(offsetX, offsetY, offsetZ);
+
+		// Randomize other bubble parameters
+		bubble.size = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 0.4f);
+		bubble.speed = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 0.1f);
+		bubble.startTime = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 10.0f);
+		bubble.radius = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 1.0f);
+
+		bubbles.push_back(bubble);
+	}
 }
 
 std::vector<Fish> fishes;
@@ -508,22 +530,23 @@ void LoadObjects()
 	stbi_set_flip_vertically_on_load(false);
 
 	// Objects loading
-	selectedFishObj = std::make_unique<Model>("../Models/Fish/selectedFish.obj", false);
-	cubeObj = std::make_unique<Mesh>(cubeVertices, std::vector<unsigned int>(), std::vector<Texture>{cubeTexture});
-	fishObj = std::make_unique<Model>("../Models/Fish/fish.obj", false);
-	goldFishObj = std::make_unique<Model>("../Models/GoldFish/goldFish.obj", false);
-	coralBeautyFishObj = std::make_unique<Model>("../Models/CoralBeauty/coralBeauty.obj", false);
-	grayFishObj = std::make_unique<Model>("../Models/GreyFish/fish.obj", false);
 	angelFishObj = std::make_unique<Model>("../Models/Fishes/AngelFish/fish.obj", false);
+	blackMoorFishObj = std::make_unique<Model>("../Models/Fishes/BlackMoorFish/fish.obj", false);
+	blueGreenFishObj = std::make_unique<Model>("../Models/Fishes/BlueGreenFish/fish.obj", false);
+	clownFishObj = std::make_unique<Model>("../Models/Fishes/ClownFish/fish.obj", false);
+	doryFishObj = std::make_unique<Model>("../Models/Fishes/DoryFish/fish.obj", false);
+	goldFishObj = std::make_unique<Model>("../Models/Fishes/GoldFish/fish.obj", false);
+	grayFishObj = std::make_unique<Model>("../Models/Fishes/GrayFish/fish.obj", false);
+	lineWrasseFishObj = std::make_unique<Model>("../Models/Fishes/LineWrasseFish/fish.obj", false);
+	longFinFishObj = std::make_unique<Model>("../Models/Fishes/LongFinFish/fish.obj", false);
+	rainbowFishObj = std::make_unique<Model>("../Models/Fishes/RainbowFish/fish.obj", false);
+	yellowTangFishObj = std::make_unique<Model>("../Models/Fishes/YellowTang/fish.obj", false);
+	americanFlagFishObj = std::make_unique<Model>("../Models/Fishes/AmericanFlagFish/fish.obj", false);
+
+	selectedFishObj = std::make_unique<Model>("../Models/Fishes/ClownFish/selectedFish.obj", false);
+	cubeObj = std::make_unique<Mesh>(cubeVertices, std::vector<unsigned int>(), std::vector<Texture>{cubeTexture});
 	starFishObj = std::make_unique<Model>("../Models/StarFish/starFish.obj", false);
-	blueGreenFishObj = std::make_unique<Model>("../Models/BlueGreenFish/blueGreenFish.obj", false);
-	rainbowFishObj = std::make_unique<Model>("../Models/RainbowFish/rainbowFish.obj", false);
-	blackMoorFishObj = std::make_unique<Model>("../Models/BlackMoorFish/blackMoorFish.obj", false);
-	longFinFishObj = std::make_unique<Model>("../Models/LongFinFish/longFinFish.obj", false);
-	doryFishObj = std::make_unique<Model>("../Models/DoryFish/doryFish.obj", false);
-	yellowTangFishObj = std::make_unique<Model>("../Models/YellowTangFish/yellowTangFish.obj", false);
-	lineWrasseFishObj = std::make_unique<Model>("../Models/LineWrasseFish/lineWrasseFish.obj", false);
-	americanFlagFishObj = std::make_unique<Model>("../Models/AmericanFlagFish/americanFlagFish.obj", false);
+
 	bubbleObj = std::make_unique<Model>("../Models/Bubble/bubble.obj", false);
 	sandDune = std::make_unique<Model>("../Models/BigFauna/fauna.obj", false);
 	water  = std::make_unique<Model>("../Models/Water/water.obj", false);
@@ -550,19 +573,15 @@ void RenderScene(Shader& shader)
 	fishModel = glm::translate(fishModel, movingFish.GetPos());
 	fishModel = glm::rotate(fishModel, glm::radians(movingFish.GetYaw()), glm::vec3(0, 1, 0));
 	fishModel = glm::rotate(fishModel, -glm::radians(movingFish.GetPitch()), glm::vec3(1, 0, 0));
-	//rotate around z-axis
-	fishModel = glm::rotate(fishModel, glm::radians(
-		90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis
-	fishModel = glm::rotate(fishModel, glm::radians(
-		90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
 	fishModel = glm::scale(fishModel, glm::vec3(
 		0.1f, 0.1f, 0.1f
 	)); // Scale uniformly
 
+	float tankHalfSideLength = 12.5f * 5;
+	float tankHeight = 10.0f; // Set this to the actual height of your tank
 
-	//Fishes
 	for (int i = 0; i < numGreyFishes; ++i) {
-		fishes[i].CheckWalls(12.5f);
+		fishes[i].CheckWalls(tankHalfSideLength, tankHeight);
 		direction = EFishMovementType::LEFT;
 		glm::mat4 fish = glm::mat4(1.0f);
 		float currFishTimer = fishes[i].GetFishMovementTimer();
@@ -592,45 +611,44 @@ void RenderScene(Shader& shader)
 		int randomFishObject = fishModels[i];
 		switch (randomFishObject)
 		{
-			case 0:
-				grayFishObj->RenderModel(shader, fish);
-				break;
-			case 1:
-				goldFishObj->RenderModel(shader, fish);
-				break;
-			case 2:
-				fishObj->RenderModel(shader, fish);
-				break;
-			case 3:
-				angelFishObj->RenderModel(shader, fish);
-				break;
-			case 4:
-				blueGreenFishObj->RenderModel(shader, fish); 
-				break;
-			case 5: 
-				rainbowFishObj->RenderModel(shader, fish);
-				break;
-			case 6:
-				blackMoorFishObj->RenderModel(shader, fish);
-				break;
-			case 7:
-				longFinFishObj->RenderModel(shader, fish);
-				break;
-			case 8:
-				doryFishObj->RenderModel(shader, fish);
-				break;
-			case 9:
-				yellowTangFishObj->RenderModel(shader, fish);
-				break;
-			case 10:
-				lineWrasseFishObj->RenderModel(shader, fish);
-				break;
-			case 11:
-				americanFlagFishObj->RenderModel(shader, fish);
-				break;
+		case 0:
+			grayFishObj->RenderModel(shader, fish);
+			break;
+		case 1:
+			goldFishObj->RenderModel(shader, fish);
+			break;
+		case 2:
+			clownFishObj->RenderModel(shader, fish);
+			break;
+		case 3:
+			angelFishObj->RenderModel(shader, fish);
+			break;
+		case 4:
+			blueGreenFishObj->RenderModel(shader, fish);
+			break;
+		case 5:
+			rainbowFishObj->RenderModel(shader, fish);
+			break;
+		case 6:
+			blackMoorFishObj->RenderModel(shader, fish);
+			break;
+		case 7:
+			longFinFishObj->RenderModel(shader, fish);
+			break;
+		case 8:
+			doryFishObj->RenderModel(shader, fish);
+			break;
+		case 9:
+			yellowTangFishObj->RenderModel(shader, fish);
+			break;
+		case 10:
+			lineWrasseFishObj->RenderModel(shader, fish);
+			break;
+		case 11:
+			americanFlagFishObj->RenderModel(shader, fish);
+			break;
 		}
 		bubbles[i].newPos = bubbleInitialPos;
-
 	}
 
 	
@@ -687,13 +705,23 @@ void RenderScene(Shader& shader)
 		bubbleModelMatrix = glm::scale(bubbleModelMatrix, glm::vec3(bubbles[i].size, bubbles[i].size, bubbles[i].size));
 		bubbleObj->RenderModel(shader, bubbleModelMatrix);
 	}
+	//call bubble flurry method for 20 bubbles in the corner of the cube
+	bubbleFlurry(20, glm::vec3(0.0f, 0.0f, 0.0f));
+
+	for (int i = 0; i < 20; i++)
+	{
+		glm::mat4 bubbleModelMatrix = glm::mat4(1.0f);
+		bubbleModelMatrix = glm::translate(bubbleModelMatrix, bubbles[i].newPos);
+		bubbleModelMatrix = glm::scale(bubbleModelMatrix, glm::vec3(bubbles[i].size, bubbles[i].size, bubbles[i].size));
+		bubbleObj->RenderModel(shader, bubbleModelMatrix);
+	}
 
 	glDisable(GL_CULL_FACE);
 	if (IsCameraWithinROI(pCamera, movingFish.GetPos(), roiRadius) && !isInFishPerspective)
 	{
 		selectedFishObj->RenderModel(shader, fishModel);
 	}
-	else fishObj->RenderModel(shader, fishModel);
+	else clownFishObj->RenderModel(shader, fishModel);
 
 	floorObj->RenderMesh(shader);
 

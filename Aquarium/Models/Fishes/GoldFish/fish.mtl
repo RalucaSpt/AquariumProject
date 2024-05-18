@@ -1,0 +1,12 @@
+# Blender 4.1.1 MTL File: 'None'
+# www.blender.org
+
+newmtl Ryukin_Goldfish.001
+Ns 41.999996
+Ka 1.000000 1.000000 1.000000
+Ks 0.385233 0.385233 0.385233
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd fish2.jpg

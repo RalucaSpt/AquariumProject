@@ -33,7 +33,7 @@ public:
 
 	void InitialFishVectors();
 	void Flip();
-	void CheckWalls(float boundary);
+	void CheckWalls(float boundary, float tankHeight);
 
 
 	void Move(EFishMovementType direction);
@@ -94,7 +94,9 @@ private:
 
 	float m_fishMovementTimer = 0.f;
 
-	float m_fishSize = 1.f;
+	float fishSize = 1.f;
+	glm::vec3 position;
+	glm::vec3 direction;
 
 	std::vector<EFishMovementType> m_fishMovements;
 };

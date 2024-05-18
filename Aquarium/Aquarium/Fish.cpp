@@ -106,13 +106,24 @@ void Fish::Flip()
 	UpdateFishVectors();
 }
 
-void Fish::CheckWalls(float boundary)
-{
-	if (m_position.x >= boundary || m_position.x <= -boundary ||
-		m_position.y >= boundary/2 || m_position.y <= -boundary ||
-		m_position.z >= boundary || m_position.z <= -boundary) {
-		Flip();
-	}
+void Fish::CheckWalls(float halfSideLength, float tankHeight) {
+    // Check X boundaries
+    if (position.x - fishSize / 2 < -halfSideLength || position.x + fishSize / 2 > halfSideLength) {
+        direction.x = -direction.x;
+        position.x = glm::clamp(position.x, -halfSideLength + fishSize / 2, halfSideLength - fishSize / 2);
+    }
+
+    // Check Y boundaries
+    if (position.y - fishSize / 2 < -tankHeight / 2 || position.y + fishSize / 2 > tankHeight / 2) {
+        direction.y = -direction.y;
+        position.y = glm::clamp(position.y, -tankHeight / 2 + fishSize / 2, tankHeight / 2 - fishSize / 2);
+    }
+
+    // Check Z boundaries
+    if (position.z - fishSize / 2 < -halfSideLength || position.z + fishSize / 2 > halfSideLength) {
+        direction.z = -direction.z;
+        position.z = glm::clamp(position.z, -halfSideLength + fishSize / 2, halfSideLength - fishSize / 2);
+    }
 }
 
 void Fish::Move(EFishMovementType direction)
@@ -237,7 +248,7 @@ void Fish::StartNewMovement(float totalTime, EFishMovementType direction) {
 
 float Fish::GetFishSize() const
 {
-    return m_fishSize;
+    return fishSize;
 }
 
 float Fish::GetFishMovementTimer() const
@@ -247,7 +258,7 @@ float Fish::GetFishMovementTimer() const
 
 void Fish::SetFishSize(float size)
 {
-    m_fishSize = size;
+    fishSize = size;
 }
 
 void Fish::SetFishMovementTimer(float timer)
