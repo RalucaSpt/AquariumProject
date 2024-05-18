@@ -41,8 +41,8 @@ double deltaTime = 0.0f;
 double lastFrame = 0.0f;
 int m_mapWidth, m_mapHeight, m_mapChannels, m_indicesRez;
 std::vector<float> m_vertices;
-int numGreyFishes = 35;
-int numBubbles = 35;
+int numGreyFishes = 40;
+int numBubbles = 40;
 
 std::vector<int> fishModels;
 int numFishSpecies = 13;
@@ -667,15 +667,15 @@ void RenderScene(Shader& shader)
 	//plant->RenderModel(shader, plantModelMatrix);
 
 	glm::mat4 skullMatrix = glm::mat4(1.0f);
-	skullMatrix = glm::translate(skullMatrix, glm::vec3(-35.0f, -8.0f, -20.0f));
+	skullMatrix = glm::translate(skullMatrix, glm::vec3(25.0f, -8.0f, -5.0f));
 	skullMatrix = glm::scale(skullMatrix, glm::vec3(1.f, 1.f, 1.f));
-	skullMatrix = glm::rotate(skullMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Ajustează acest unghi după necesitate
+	skullMatrix = glm::rotate(skullMatrix, glm::radians(290.0f), glm::vec3(0.0f, 1.0f, 0.0f)); 
 	skullObj->RenderModel(shader, skullMatrix);
 	
 	glm::mat4 treasureChestMatrix = glm::mat4(1.0f);
-	treasureChestMatrix = glm::translate(treasureChestMatrix, glm::vec3(-45.0f, -8.0f, 5.0f));
-	treasureChestMatrix = glm::scale(treasureChestMatrix, glm::vec3(0.3f, 0.3f, 0.3f));
-	treasureChestMatrix = glm::rotate(treasureChestMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Ajustează acest unghi după necesitate
+	treasureChestMatrix = glm::translate(treasureChestMatrix, glm::vec3(35.0f, -8.0f, 15.0f));
+	treasureChestMatrix = glm::scale(treasureChestMatrix, glm::vec3(0.2f, 0.2f, 0.2f));
+	treasureChestMatrix = glm::rotate(treasureChestMatrix, glm::radians(250.0f), glm::vec3(0.0f, 1.0f, 0.0f)); 
 	treasureChestObj->RenderModel(shader, treasureChestMatrix);
 
 	if (isInFishPerspective)
