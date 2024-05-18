@@ -23,7 +23,7 @@ auto t_start = std::chrono::high_resolution_clock::now();
 
 Camera* pCamera;
 std::unique_ptr<Mesh> floorObj, cubeObj;
-std::unique_ptr<Model> starFishObj, bubbleObj, sandDune, coral, plant, anchor, water, skullObj;
+std::unique_ptr<Model> starFishObj, bubbleObj, sandDune, coral, plant, anchor, water, skullObj, treasureChestObj;
 std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, angelFishObj, blueGreenFishObj, rainbowFishObj, blackMoorFishObj, longFinFishObj, doryFishObj, yellowTangFishObj;
 float timeAcceleration = 0.1f;
 glm::vec3 zrotation = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -542,6 +542,7 @@ void LoadObjects()
 	sandDune = std::make_unique<Model>("../Models/BigFauna/fauna.obj", false);
 	water  = std::make_unique<Model>("../Models/Water/water.obj", false);
 	skullObj = std::make_unique<Model>("../Models/Skull/skull.obj", false);
+	treasureChestObj = std::make_unique<Model>("../Models/TreasureChest/treasureChest.obj", false);
 	floorObj = std::make_unique<Mesh>(floorVertices, std::vector<unsigned int>(), std::vector<Texture>{floorTexture});
 }
 
@@ -659,10 +660,16 @@ void RenderScene(Shader& shader)
 	//plant->RenderModel(shader, plantModelMatrix);
 
 	glm::mat4 skullMatrix = glm::mat4(1.0f);
-	skullMatrix = glm::translate(skullMatrix, glm::vec3(-35.0f, -8.0f, -15.0f));
+	skullMatrix = glm::translate(skullMatrix, glm::vec3(-35.0f, -8.0f, -20.0f));
 	skullMatrix = glm::scale(skullMatrix, glm::vec3(1.f, 1.f, 1.f));
 	skullMatrix = glm::rotate(skullMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Ajustează acest unghi după necesitate
 	skullObj->RenderModel(shader, skullMatrix);
+	
+	glm::mat4 treasureChestMatrix = glm::mat4(1.0f);
+	treasureChestMatrix = glm::translate(treasureChestMatrix, glm::vec3(-45.0f, -8.0f, 5.0f));
+	treasureChestMatrix = glm::scale(treasureChestMatrix, glm::vec3(0.3f, 0.3f, 0.3f));
+	treasureChestMatrix = glm::rotate(treasureChestMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Ajustează acest unghi după necesitate
+	treasureChestObj->RenderModel(shader, treasureChestMatrix);
 
 	if (isInFishPerspective)
 	{
