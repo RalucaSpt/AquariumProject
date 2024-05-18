@@ -23,8 +23,8 @@ auto t_start = std::chrono::high_resolution_clock::now();
 
 Camera* pCamera;
 std::unique_ptr<Mesh> floorObj, cubeObj;
-std::unique_ptr<Model> starFishObj, bubbleObj, sandDune, coral, plant, anchor, water;
-std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, angelFishObj, blueGreenFishObj, rainbowFishObj, blackMoorFishObj, longFinFishObj, doryFishObj;
+std::unique_ptr<Model> starFishObj, bubbleObj, sandDune, coral, plant, anchor, water, skullObj;
+std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, angelFishObj, blueGreenFishObj, rainbowFishObj, blackMoorFishObj, longFinFishObj, doryFishObj, yellowTangFishObj;
 float timeAcceleration = 0.1f;
 glm::vec3 zrotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
@@ -45,7 +45,7 @@ int numGreyFishes = 35;
 int numBubbles = 35;
 
 std::vector<int> fishModels;
-int numFishSpecies = 10;
+int numFishSpecies = 11;
 void InitFishModels()
 {
 	int model = rand() % numFishSpecies;
@@ -537,9 +537,11 @@ void LoadObjects()
 	blackMoorFishObj = std::make_unique<Model>("../Models/BlackMoorFish/blackMoorFish.obj", false);
 	longFinFishObj = std::make_unique<Model>("../Models/LongFinFish/longFinFish.obj", false);
 	doryFishObj = std::make_unique<Model>("../Models/DoryFish/doryFish.obj", false);
+	yellowTangFishObj = std::make_unique<Model>("../Models/YellowTangFish/yellowTangFish.obj", false);
 	bubbleObj = std::make_unique<Model>("../Models/Bubble/bubble.obj", false);
 	sandDune = std::make_unique<Model>("../Models/BigFauna/fauna.obj", false);
 	water  = std::make_unique<Model>("../Models/Water/water.obj", false);
+	skullObj = std::make_unique<Model>("../Models/Skull/skull.obj", false);
 	floorObj = std::make_unique<Mesh>(floorVertices, std::vector<unsigned int>(), std::vector<Texture>{floorTexture});
 }
 
@@ -624,6 +626,9 @@ void RenderScene(Shader& shader)
 			case 8:
 				doryFishObj->RenderModel(shader, fish);
 				break;
+			case 9:
+				yellowTangFishObj->RenderModel(shader, fish);
+				break;
 
 		}
 		bubbles[i].newPos = bubbleInitialPos;
@@ -652,6 +657,12 @@ void RenderScene(Shader& shader)
 	plantModelMatrix = glm::scale(plantModelMatrix, glm::vec3(10.f, 10.f, 10.f));
 	plantModelMatrix = glm::rotate(plantModelMatrix, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	//plant->RenderModel(shader, plantModelMatrix);
+
+	glm::mat4 skullMatrix = glm::mat4(1.0f);
+	skullMatrix = glm::translate(skullMatrix, glm::vec3(-35.0f, -8.0f, -15.0f));
+	skullMatrix = glm::scale(skullMatrix, glm::vec3(1.f, 1.f, 1.f));
+	skullMatrix = glm::rotate(skullMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Ajustează acest unghi după necesitate
+	skullObj->RenderModel(shader, skullMatrix);
 
 	if (isInFishPerspective)
 	{
