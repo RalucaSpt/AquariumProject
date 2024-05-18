@@ -24,7 +24,7 @@ auto t_start = std::chrono::high_resolution_clock::now();
 Camera* pCamera;
 std::unique_ptr<Mesh> floorObj, cubeObj;
 std::unique_ptr<Model> starFishObj, bubbleObj, sandDune, coral, plant, anchor, water;
-std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, angelFishObj;
+std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, angelFishObj, blueGreenFishObj, rainbowFishObj, blackMoorFishObj, longFinFishObj, doryFishObj;
 float timeAcceleration = 0.1f;
 glm::vec3 zrotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
@@ -41,11 +41,11 @@ double deltaTime = 0.0f;
 double lastFrame = 0.0f;
 int m_mapWidth, m_mapHeight, m_mapChannels, m_indicesRez;
 std::vector<float> m_vertices;
-int numGreyFishes = 20;
-int numBubbles = 20;
+int numGreyFishes = 35;
+int numBubbles = 35;
 
 std::vector<int> fishModels;
-int numFishSpecies = 5;
+int numFishSpecies = 10;
 void InitFishModels()
 {
 	int model = rand() % numFishSpecies;
@@ -532,6 +532,11 @@ void LoadObjects()
 	grayFishObj = std::make_unique<Model>("../Models/GreyFish/fish.obj", false);
 	angelFishObj = std::make_unique<Model>("../Models/Fishes/AngelFish/fish.obj", false);
 	starFishObj = std::make_unique<Model>("../Models/StarFish/starFish.obj", false);
+	blueGreenFishObj = std::make_unique<Model>("../Models/BlueGreenFish/blueGreenFish.obj", false);
+	rainbowFishObj = std::make_unique<Model>("../Models/RainbowFish/rainbowFish.obj", false);
+	blackMoorFishObj = std::make_unique<Model>("../Models/BlackMoorFish/blackMoorFish.obj", false);
+	longFinFishObj = std::make_unique<Model>("../Models/LongFinFish/longFinFish.obj", false);
+	doryFishObj = std::make_unique<Model>("../Models/DoryFish/doryFish.obj", false);
 	bubbleObj = std::make_unique<Model>("../Models/Bubble/bubble.obj", false);
 	sandDune = std::make_unique<Model>("../Models/BigFauna/fauna.obj", false);
 	water  = std::make_unique<Model>("../Models/Water/water.obj", false);
@@ -558,6 +563,7 @@ void RenderScene(Shader& shader)
 	fishModel = glm::rotate(fishModel, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
 	fishModel = glm::scale(fishModel, glm::vec3(0.1f, 0.1f, 0.1f)); 
 	fishObj->RenderModel(shader, fishModel);
+
 
 	//Fishes
 	for (int i = 0; i < numGreyFishes; ++i) {
@@ -603,10 +609,28 @@ void RenderScene(Shader& shader)
 			case 3:
 				angelFishObj->RenderModel(shader, fish);
 				break;
+			case 4:
+				blueGreenFishObj->RenderModel(shader, fish); 
+				break;
+			case 5: 
+				rainbowFishObj->RenderModel(shader, fish);
+				break;
+			case 6:
+				blackMoorFishObj->RenderModel(shader, fish);
+				break;
+			case 7:
+				longFinFishObj->RenderModel(shader, fish);
+				break;
+			case 8:
+				doryFishObj->RenderModel(shader, fish);
+				break;
+
 		}
 		bubbles[i].newPos = bubbleInitialPos;
 
 	}
+
+	
 
 	glm::mat4 sandDuneModelMatrix = glm::mat4(1.0f);
 	sandDuneModelMatrix = glm::translate(sandDuneModelMatrix, glm::vec3(0.0f, -12.f, 0.0f)); 
