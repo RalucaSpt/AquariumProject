@@ -61,10 +61,11 @@ glm::mat4 Camera::GetViewMatrix(Fish& fish)
 {
 	if (mode == FreeLook)
 		return glm::lookAt(position, position + forward, up);
-	float planeYaw = fish.GetYaw() - 90.f;
-	float planePitch = fish.GetPitch();
+	
 	if (mode == ThirdPerson)
 	{
+		float planeYaw = fish.GetYaw() - 90.f;
+		float planePitch = fish.GetPitch();
 
 		//reverting camera pos
 		if (yaw != planeYaw)

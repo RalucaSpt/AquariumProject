@@ -39,6 +39,7 @@ public:
 	void Move(EFishMovementType direction);
 
 	void MoveFish(float deltaTime);
+	void MoveMovingFish(float deltaTime);
 
 	void SetDirection(EFishMovementType direction);
 	void StartNewMovement(float totalTime, EFishMovementType direction);
