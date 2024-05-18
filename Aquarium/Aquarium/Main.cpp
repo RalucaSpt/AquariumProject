@@ -24,7 +24,7 @@ auto t_start = std::chrono::high_resolution_clock::now();
 Camera* pCamera;
 std::unique_ptr<Mesh> floorObj, cubeObj;
 std::unique_ptr<Model> starFishObj, bubbleObj, sandDune, coral, plant, anchor, water, skullObj, treasureChestObj;
-std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, angelFishObj, blueGreenFishObj, rainbowFishObj, blackMoorFishObj, longFinFishObj, doryFishObj, yellowTangFishObj;
+std::unique_ptr<Model> fishObj, goldFishObj, coralBeautyFishObj, grayFishObj, angelFishObj, blueGreenFishObj, rainbowFishObj, blackMoorFishObj, longFinFishObj, doryFishObj, yellowTangFishObj, lineWrasseFishObj, americanFlagFishObj;
 float timeAcceleration = 0.1f;
 glm::vec3 zrotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
@@ -45,7 +45,7 @@ int numGreyFishes = 35;
 int numBubbles = 35;
 
 std::vector<int> fishModels;
-int numFishSpecies = 11;
+int numFishSpecies = 13;
 void InitFishModels()
 {
 	int model = rand() % numFishSpecies;
@@ -538,6 +538,8 @@ void LoadObjects()
 	longFinFishObj = std::make_unique<Model>("../Models/LongFinFish/longFinFish.obj", false);
 	doryFishObj = std::make_unique<Model>("../Models/DoryFish/doryFish.obj", false);
 	yellowTangFishObj = std::make_unique<Model>("../Models/YellowTangFish/yellowTangFish.obj", false);
+	lineWrasseFishObj = std::make_unique<Model>("../Models/LineWrasseFish/lineWrasseFish.obj", false);
+	americanFlagFishObj = std::make_unique<Model>("../Models/AmericanFlagFish/americanFlagFish.obj", false);
 	bubbleObj = std::make_unique<Model>("../Models/Bubble/bubble.obj", false);
 	sandDune = std::make_unique<Model>("../Models/BigFauna/fauna.obj", false);
 	water  = std::make_unique<Model>("../Models/Water/water.obj", false);
@@ -630,7 +632,12 @@ void RenderScene(Shader& shader)
 			case 9:
 				yellowTangFishObj->RenderModel(shader, fish);
 				break;
-
+			case 10:
+				lineWrasseFishObj->RenderModel(shader, fish);
+				break;
+			case 11:
+				americanFlagFishObj->RenderModel(shader, fish);
+				break;
 		}
 		bubbles[i].newPos = bubbleInitialPos;
 
