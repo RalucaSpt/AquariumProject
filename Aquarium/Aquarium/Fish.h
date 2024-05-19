@@ -33,6 +33,12 @@ public:
 
 	void InitialFishVectors();
 	void Flip();
+	void Wait(float waitTime);
+	bool IsWaiting() const;
+
+	void UpdateWaitTimer(float deltaTime);
+
+	void StopWaiting();
 	void CheckWalls(float boundary, float tankHeight);
 
 
@@ -66,6 +72,8 @@ public:
 
 	void SetRoll(float roll);
 
+	glm::vec3 GetFront() const;
+
 
 	EFishMovementType GetMove(int index);
 private:
@@ -93,6 +101,9 @@ private:
 	float takeoffCooldown = 2.f;
 
 	float m_fishMovementTimer = 0.f;
+
+	bool m_isWaiting = false;
+	float m_waitTimer = 0.0f;
 
 	float fishSize = 1.f;
 	glm::vec3 position;

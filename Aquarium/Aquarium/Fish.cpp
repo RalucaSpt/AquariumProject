@@ -99,32 +99,72 @@ void Fish::InitialFishVectors()
 
 void Fish::Flip()
 {
-	m_yaw += 180.0f;
-	if (m_yaw >= 360.0f) {
-		m_yaw -= 360.0f;
+    // Rotate the fish 180 degrees around the yaw axis
+    m_yaw += 180.0f;
+    if (m_yaw >= 360.0f) {
+        m_yaw -= 360.0f;
+    }
+
+    // Rotate the fish 180 degrees around the pitch axis
+    m_pitch = -m_pitch;
+    if (m_pitch >= 360.0f) {
+        m_pitch -= 360.0f;
+    }
+    else if (m_pitch < 0.0f) {
+        m_pitch += 360.0f;
+    }
+
+    UpdateFishVectors();
+}
+
+
+void Fish::Wait(float waitTime) {
+    m_isWaiting = true;
+    m_waitTimer = waitTime;
+}
+
+bool Fish::IsWaiting() const
+{
+	return m_isWaiting;
+}
+
+void Fish::UpdateWaitTimer(float deltaTime)
+{
+	if (m_isWaiting) {
+		m_waitTimer -= deltaTime;
+		if (m_waitTimer <= 0) {
+			m_isWaiting = false;
+			m_waitTimer = 0.0f;
+		}
 	}
-	UpdateFishVectors();
+}
+
+void Fish::StopWaiting()
+{
+	m_isWaiting = false;
+	m_waitTimer = 0.0f;
 }
 
 void Fish::CheckWalls(float halfSideLength, float tankHeight) {
-    // Check X boundaries
-    if (position.x - fishSize / 2 < -halfSideLength || position.x + fishSize / 2 > halfSideLength) {
-        direction.x = -direction.x;
-        position.x = glm::clamp(position.x, -halfSideLength + fishSize / 2, halfSideLength - fishSize / 2);
+    glm::vec3 pos = GetPos();
+    if (pos.x < -halfSideLength || pos.x > halfSideLength) {
+        pos.x = glm::clamp(pos.x, -halfSideLength, halfSideLength);
+        SetYaw(GetYaw() + 180.0f);
+        InitialFishVectors();
     }
-
-    // Check Y boundaries
-    if (position.y - fishSize / 2 < -tankHeight / 2 || position.y + fishSize / 2 > tankHeight / 2) {
-        direction.y = -direction.y;
-        position.y = glm::clamp(position.y, -tankHeight / 2 + fishSize / 2, tankHeight / 2 - fishSize / 2);
+    if (pos.z < -halfSideLength || pos.z > halfSideLength) {
+        pos.z = glm::clamp(pos.z, -halfSideLength, halfSideLength);
+        SetYaw(GetYaw() + 180.0f);
+        InitialFishVectors();
     }
-
-    // Check Z boundaries
-    if (position.z - fishSize / 2 < -halfSideLength || position.z + fishSize / 2 > halfSideLength) {
-        direction.z = -direction.z;
-        position.z = glm::clamp(position.z, -halfSideLength + fishSize / 2, halfSideLength - fishSize / 2);
+    if (pos.y < -tankHeight || pos.y > tankHeight) {
+        pos.y = glm::clamp(pos.y, -tankHeight, tankHeight);
+        SetPitch(GetPitch() + 180.0f);
+        InitialFishVectors();
     }
+    SetPos(pos);
 }
+
 
 void Fish::Move(EFishMovementType direction)
 {
@@ -358,6 +398,11 @@ void Fish::SetPitch(float pitch)
 void Fish::SetRoll(float roll)
 {
 	m_roll = roll;
+}
+
+glm::vec3 Fish::GetFront() const
+{
+	return m_forward;
 }
 
 EFishMovementType Fish::GetMove(int index)

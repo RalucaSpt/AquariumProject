@@ -57,6 +57,29 @@ void InitFishModels()
 	}
 }
 
+bool CheckCollision( Fish& fish1, Fish& fish2) {
+	float distance = glm::distance(fish1.GetPos(), fish2.GetPos());
+	float minDistance = fish1.GetFishSize() + fish2.GetFishSize();
+
+	if (distance >= minDistance) {
+		return false;
+	}
+
+	glm::vec3 dir1 = glm::normalize(fish1.GetFront());
+	glm::vec3 dir2 = glm::normalize(fish2.GetFront());
+	//glm::vec3 toFish2 = glm::normalize(fish2.GetPos - fish1.GetPos());
+	glm::vec3 toFish2 = fish2.GetPos() - fish1.GetPos();
+	toFish2 = glm::normalize(toFish2);
+
+
+	// Check if fish1 is heading towards fish2
+	bool headingTowardsFish2 = glm::dot(dir1, toFish2) > 1.0f; // adjust threshold as necessary
+	// Check if fish2 is heading towards fish1
+	bool headingTowardsFish1 = glm::dot(dir2, -toFish2) > 1.0f; // adjust threshold as necessary
+
+	return headingTowardsFish2 || headingTowardsFish1;
+}
+
 struct BubbleParams
 {
 	glm::vec3 position;
@@ -69,39 +92,6 @@ struct BubbleParams
 float verticalSpeed = 0.2f;
 float bubbleTime = 0.0f;
 std::vector<BubbleParams> bubbles;
-
-//void DrawColoredBorder(Model& fishObjModel, const glm::mat4& fishModel, bool transparent) {
-//	const glm::vec3 borderColor = glm::vec3(1.0f, 0.0f, 0.0f); // Red color
-//
-//	glm::mat4 borderModel = fishModel;
-//	Shader borderShader("../Shaders/Border.vs", "../Shaders/Border.fs");
-//	borderShader.Use();
-//
-//	borderShader.SetMat4("model", borderModel);
-//	borderShader.SetMat4("view", pCamera->GetViewMatrix());
-//	borderShader.SetMat4("projection", pCamera->GetProjectionMatrix());
-//	borderShader.SetVec3("borderColor", borderColor);
-//	if (transparent) {
-//		borderShader.SetVec4("borderColor", glm::vec4(borderColor, 0.0f));
-//	}
-//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-//	fishObjModel.RenderModel(borderShader);
-//	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-//}
-
-//void SwitchToFishPerspective(Camera* camera, const glm::vec3& fishPosition)
-//{
-//	glm::vec3 offset = glm::vec3(0.0f, 1.5f, -3.0f);
-//	camera->SetPosition(fishPosition + offset);
-//	glm::vec3 direction = glm::normalize(fishPosition - camera->GetPosition());
-//
-//	float yaw = glm::degrees(atan2(direction.x, direction.z)) + 90;
-//	float pitch = glm::degrees(asin(direction.y));
-//
-//	camera->SetYaw(yaw);
-//	camera->SetPitch(pitch);
-//
-//}
 
 void generateBubblesParams()
 {
@@ -182,7 +172,7 @@ std::vector<Fish> fishes;
 
 glm::vec3 GeneratePosition()
 {
-	float halfSideLength = 12.5f;
+	float halfSideLength = 12.5f *5;
 
 	float x = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / (2 * halfSideLength)) - halfSideLength;
 	float y = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / (2 * halfSideLength)) - halfSideLength;
@@ -222,20 +212,42 @@ void resetFishTimer(int index)
 	fishes[index].SetFishMovementTimer(1.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (5.0f - 2.0f))));
 }
 
-void UpdateFishPosition(int index, EFishMovementType direction)
-{
-	fishes[index].Move(direction); 
-	fishes[index].MoveFish(deltaTime);
-	float currFishTimer = fishes[index].GetFishMovementTimer();
+void UpdateFishPosition(int index, EFishMovementType direction) {
+	Fish& fish = fishes[index];
 
-	while (currFishTimer <= 0)
-	{
-		resetFishTimer(index);
-		currFishTimer = fishes[index].GetFishMovementTimer();
-		//return;
+	// Update wait timer
+	fish.UpdateWaitTimer(deltaTime);
+
+	// If the fish is waiting, skip the rest of the update
+	if (fish.IsWaiting()) {
+		return;
 	}
-	fishes[index].SetFishMovementTimer(currFishTimer - 0.01f);
+
+	glm::vec3 originalPosition = fish.GetPos();
+
+	// Move the fish
+	fish.Move(direction);
+	fish.MoveFish(deltaTime);
+
+	// Check for collisions with other fishes
+	for (int i = 0; i < fishes.size(); ++i) {
+		if (i != index && CheckCollision(fish, fishes[i])) {
+			// Collision detected, revert to the original position and wait
+			//fish.SetPos(originalPosition);
+			fish.Wait(1.0f); // Wait for 1 second, adjust as needed
+			fishes[i].Wait(1.0f); // Optionally, make the other fish wait too
+			break;
+		}
+	}
+
+	float currFishTimer = fish.GetFishMovementTimer();
+	while (currFishTimer <= 0) {
+		resetFishTimer(index);
+		currFishTimer = fish.GetFishMovementTimer();
+	}
+	fish.SetFishMovementTimer(currFishTimer - 0.01f);
 }
+
 
 
 float roiRadius = 5.0f;
@@ -706,7 +718,7 @@ void RenderScene(Shader& shader)
 		bubbleObj->RenderModel(shader, bubbleModelMatrix);
 	}
 	//call bubble flurry method for 20 bubbles in the corner of the cube
-	bubbleFlurry(20, glm::vec3(0.0f, 0.0f, 0.0f));
+	//bubbleFlurry(20, glm::vec3(0.0f, 0.0f, 0.0f));
 
 	for (int i = 0; i < 20; i++)
 	{
