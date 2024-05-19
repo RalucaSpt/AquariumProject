@@ -554,11 +554,10 @@ void LoadObjects()
 	rainbowFishObj = std::make_unique<Model>("../Models/Fishes/RainbowFish/fish.obj", false);
 	yellowTangFishObj = std::make_unique<Model>("../Models/Fishes/YellowTang/fish.obj", false);
 	americanFlagFishObj = std::make_unique<Model>("../Models/Fishes/AmericanFlagFish/fish.obj", false);
-
+	plant = std::make_unique<Model>("../Models/Fauna/plant/plant.obj", false);
 	selectedFishObj = std::make_unique<Model>("../Models/Fishes/ClownFish/selectedFish.obj", false);
 	cubeObj = std::make_unique<Mesh>(cubeVertices, std::vector<unsigned int>(), std::vector<Texture>{cubeTexture});
 	starFishObj = std::make_unique<Model>("../Models/StarFish/starFish.obj", false);
-
 	bubbleObj = std::make_unique<Model>("../Models/Bubble/bubble.obj", false);
 	sandDune = std::make_unique<Model>("../Models/BigFauna/fauna.obj", false);
 	water  = std::make_unique<Model>("../Models/Water/water.obj", false);
@@ -663,13 +662,18 @@ void RenderScene(Shader& shader)
 		bubbles[i].newPos = bubbleInitialPos;
 	}
 
-	
 
 	glm::mat4 sandDuneModelMatrix = glm::mat4(1.0f);
 	sandDuneModelMatrix = glm::translate(sandDuneModelMatrix, glm::vec3(0.0f, -12.f, 0.0f)); 
 	sandDuneModelMatrix = glm::scale(sandDuneModelMatrix, glm::vec3(12.f, 9.f, 12.f));
 	sandDune->RenderModel(shader, sandDuneModelMatrix);
 
+	glm::mat4 treasureChestMatrix = glm::mat4(1.0f);
+	treasureChestMatrix = glm::translate(treasureChestMatrix, glm::vec3(35.0f, -13.0f, 15.0f));
+	treasureChestMatrix = glm::scale(treasureChestMatrix, glm::vec3(0.13f, 0.13f, 0.13f));
+	treasureChestMatrix = glm::rotate(treasureChestMatrix, glm::radians(240.0f), glm::vec3(0.0f, 1.0f, 0.0f)); 
+	treasureChestObj->RenderModel(shader, treasureChestMatrix);
+	
 	glm::mat4 anchorModelMatrix = glm::mat4(1.0f);
 	anchorModelMatrix = glm::translate(anchorModelMatrix, glm::vec3(20.0f, -14.f, -15.0f));
 	anchorModelMatrix = glm::scale(anchorModelMatrix, glm::vec3(0.13f, 0.13f, 0.13f));
@@ -681,22 +685,17 @@ void RenderScene(Shader& shader)
 	//coral->RenderModel(shader, coralModelMatrix);
 
 	glm::mat4 plantModelMatrix = glm::mat4(1.0f);
-	plantModelMatrix = glm::translate(plantModelMatrix, glm::vec3(5.0f, -1.f, 8.0f));
-	plantModelMatrix = glm::scale(plantModelMatrix, glm::vec3(10.f, 10.f, 10.f));
+	plantModelMatrix = glm::translate(plantModelMatrix, glm::vec3(-25.0f, 40.f, 20.0f));
+	plantModelMatrix = glm::scale(plantModelMatrix, glm::vec3(20.f, 55.f, 25.f));
 	plantModelMatrix = glm::rotate(plantModelMatrix, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-	//plant->RenderModel(shader, plantModelMatrix);
+	plant->RenderModel(shader, plantModelMatrix);
 
 	glm::mat4 skullMatrix = glm::mat4(1.0f);
 	skullMatrix = glm::translate(skullMatrix, glm::vec3(25.0f, -8.0f, -5.0f));
-	skullMatrix = glm::scale(skullMatrix, glm::vec3(1.f, 1.f, 1.f));
+	skullMatrix = glm::scale(skullMatrix, glm::vec3(0.8f, 0.8f, 0.8f));
 	skullMatrix = glm::rotate(skullMatrix, glm::radians(290.0f), glm::vec3(0.0f, 1.0f, 0.0f)); 
 	skullObj->RenderModel(shader, skullMatrix);
 	
-	glm::mat4 treasureChestMatrix = glm::mat4(1.0f);
-	treasureChestMatrix = glm::translate(treasureChestMatrix, glm::vec3(35.0f, -8.0f, 15.0f));
-	treasureChestMatrix = glm::scale(treasureChestMatrix, glm::vec3(0.2f, 0.2f, 0.2f));
-	treasureChestMatrix = glm::rotate(treasureChestMatrix, glm::radians(250.0f), glm::vec3(0.0f, 1.0f, 0.0f)); 
-	treasureChestObj->RenderModel(shader, treasureChestMatrix);
 
 	if (isInFishPerspective)
 	{
