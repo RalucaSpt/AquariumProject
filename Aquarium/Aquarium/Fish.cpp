@@ -97,26 +97,6 @@ void Fish::InitialFishVectors()
 	m_up = glm::normalize(glm::cross(m_right, m_forward));
 }
 
-//void Fish::Flip()
-//{
-//    // Rotate the fish 180 degrees around the yaw axis
-//    m_yaw += 180.0f;
-//    if (m_yaw >= 360.0f) {
-//        m_yaw -= 360.0f;
-//    }
-//
-//    // Rotate the fish 180 degrees around the pitch axis
-//    m_pitch = -m_pitch;
-//    if (m_pitch >= 360.0f) {
-//        m_pitch -= 360.0f;
-//    }
-//    else if (m_pitch < 0.0f) {
-//        m_pitch += 360.0f;
-//    }
-//
-//    UpdateFishVectors();
-//}
-
 
 void Fish::Wait(float waitTime) {
     m_isWaiting = true;
@@ -159,8 +139,8 @@ void Fish::CheckWalls(float halfSideLength, float tankHeight) {
         pos.z = glm::clamp(pos.z, -halfSideLength, halfSideLength);
         hitBoundary = true;
     }
-    if (pos.y < -tankHeight || pos.y > tankHeight) {
-        pos.y = glm::clamp(pos.y, -tankHeight, tankHeight);
+    if (pos.y < -10.0f || pos.y > 60.0f) {
+        pos.y = glm::clamp(pos.y, -10.0f, 60.0f);
         hitBoundary = true;
     }
 
@@ -420,39 +400,114 @@ EFishMovementType Fish::GetMove(int index)
     return m_fishMovements[index % 20];
 }
 
-void Fish::StartUTurn()
-{
-	isTurning = true;
-	turnProgress = 0.0f;
+void Fish::StartUTurn() {
+    if (isTurning) {
+        return;
+    }
 
-	startYaw = m_yaw;
-	targetYaw = m_yaw + 180.0f;
-	if (targetYaw >= 360.0f) {
-		targetYaw -= 360.0f;
-	}
+    isTurning = true;
 
-	startPitch = m_pitch;
-	targetPitch = -m_pitch;
-	if (targetPitch >= 360.0f) {
-		targetPitch -= 360.0f;
-	}
-	else if (targetPitch < 0.0f) {
-		targetPitch += 360.0f;
-	}
+    // Set the target yaw and pitch for the U-turn
+    targetYaw = m_yaw + 180.0f;
+    if (targetYaw >= 360.0f) {
+        targetYaw -= 360.0f;
+    }
+
+    /*targetPitch = m_pitch + 180.0f;
+    if (targetPitch >= 360.0f) {
+        targetPitch -= 360.0f;
+    }*/
+
+    /*if(m_pitch < 0)
+    {
+    	m_pitch = -m_pitch;
+ 	}*/targetPitch = -m_pitch;
+
+    // If the fish was moving upwards, target downwards, and vice versa
+    //if (m_pitch < 0) {
+	//targetPitch = -m_pitch;
+    //}
 }
 
-void Fish::UpdateUTurn(float deltaTime)
-{
-	if (!isTurning) return;
 
-	turnProgress += deltaTime / turnDuration;
-	if (turnProgress >= 1.0f) {
-		turnProgress = 1.0f;
-		isTurning = false;
+
+void Fish::UpdateUTurn(float deltaTime) {
+    if (!isTurning) {
+        return;
+    }
+
+    // Check if the fish is still facing the wall
+    glm::vec3 pos = GetPos();
+    glm::vec3 forward = glm::normalize(GetFront());
+
+    bool facingWall = false;
+
+    if ((pos.x <= -60.0f && forward.x < 0) || (pos.x >= 60.0f && forward.x > 0)) {
+        facingWall = true;
+    }
+    if ((pos.z <= -60.0f && forward.z < 0) || (pos.z >= 60.0f && forward.z > 0)) {
+        facingWall = true;
+    }
+    if ((pos.y <= -10 && forward.y < 0) || (pos.y >= 60 && forward.y > 0)) {
+        facingWall = true;
+    }
+
+    // If the fish is no longer facing the wall, stop the U-turn
+    if (!facingWall) {
+        isTurning = false;
+        return;
+    }
+
+   
+    float yawIncrement = 180.0f * deltaTime / 2.0f; 
+   
+    if (yawIncrement > 0) {
+        if (m_yaw + yawIncrement >= targetYaw) {
+            SetYaw(targetYaw); // Complete the U-turn
+            isTurning = false; // U-turn completed
+        }
+        else {
+            m_yaw += yawIncrement;
+        }
+    }
+    else {
+        if (m_yaw + yawIncrement <= targetYaw) {
+            SetYaw(targetYaw); // Complete the U-turn
+            isTurning = false; // U-turn completed
+        }
+        else {
+            m_yaw += yawIncrement;
+        }
+    }
+
+    //update the pitch gradually
+
+    float pitchIncrement = 180.0f * deltaTime / 2.0f;
+
+    if (pitchIncrement > 0)
+    {
+    	if (m_pitch + pitchIncrement >= targetPitch)
+    	{
+    		m_pitch = targetPitch; // Complete the U-turn
+		}
+		else
+		{
+			m_pitch += pitchIncrement;
+		}
+	}
+	else
+	{
+		if (m_pitch + pitchIncrement <= targetPitch)
+		{
+			m_pitch = targetPitch; // Complete the U-turn
+		}
+		else
+		{
+			m_pitch += pitchIncrement;
+		}
 	}
 
-	m_yaw = startYaw + turnProgress * (targetYaw - startYaw);
-	m_pitch = startPitch + turnProgress * (targetPitch - startPitch);
-
-	UpdateFishVectors();
+    // Update the fish vectors to reflect the new orientation
+    UpdateFishVectors();
 }
+

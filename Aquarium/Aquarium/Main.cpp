@@ -630,8 +630,8 @@ void RenderScene(Shader& shader)
 
 	//Starfish
 	glm::mat4 starfishModelMatrix = glm::mat4(1.0f);
-	starfishModelMatrix = glm::translate(starfishModelMatrix, glm::vec3(-1.0f, 0.0f, -1.0f)); // Ajustează poziționarea
-	starfishModelMatrix = glm::scale(starfishModelMatrix, glm::vec3(0.1f, 0.1f, 0.1f)); // Ajustează scalarea
+	starfishModelMatrix = glm::translate(starfishModelMatrix, glm::vec3(0.0f, -12.0f, 0.5f)); // Ajustează poziționarea
+	starfishModelMatrix = glm::scale(starfishModelMatrix, glm::vec3(3.1f, 3.1f, 3.1f)); // Ajustează scalarea
 	starFishObj->RenderModel(shader, starfishModelMatrix);
 
 	//static fish
@@ -643,11 +643,13 @@ void RenderScene(Shader& shader)
 		0.1f, 0.1f, 0.1f
 	)); // Scale uniformly
 
-	float tankHalfSideLength = 12.5f * 5;
+	float tankHalfSideLength = 60.0f;
 	float tankHeight = 10.0f; // Set this to the actual height of your tank
 
 	for (int i = 0; i < numGreyFishes; ++i) {
-		fishes[i].CheckWalls(tankHalfSideLength, tankHeight);
+		if(!fishes[i].isTurning)
+			fishes[i].CheckWalls(tankHalfSideLength, tankHeight);
+		fishes[i].UpdateUTurn(deltaTime);
 		direction = EFishMovementType::LEFT;
 		glm::mat4 fish = glm::mat4(1.0f);
 		float currFishTimer = fishes[i].GetFishMovementTimer();
