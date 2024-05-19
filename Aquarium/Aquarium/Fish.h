@@ -32,7 +32,7 @@ public:
 	Model* getModel();
 
 	void InitialFishVectors();
-	void Flip();
+	/*void Flip();*/
 	void Wait(float waitTime);
 	bool IsWaiting() const;
 
@@ -76,6 +76,13 @@ public:
 
 
 	EFishMovementType GetMove(int index);
+
+public:
+	void StartUTurn();
+
+	void UpdateUTurn(float deltaTime);
+	bool isTurning = false;
+
 private:
 	void UpdateFishVectors();
 	void InitFishMovements();
@@ -110,6 +117,16 @@ private:
 	glm::vec3 direction;
 
 	std::vector<EFishMovementType> m_fishMovements;
+
+private:
+	
+	float turnProgress = 0.0f;
+	float turnDuration = 2.0f; // Duration of the U-turn in seconds
+	float startYaw;
+	float targetYaw;
+	float startPitch;
+	float targetPitch;
+
 };
 
 

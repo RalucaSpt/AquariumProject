@@ -97,25 +97,25 @@ void Fish::InitialFishVectors()
 	m_up = glm::normalize(glm::cross(m_right, m_forward));
 }
 
-void Fish::Flip()
-{
-    // Rotate the fish 180 degrees around the yaw axis
-    m_yaw += 180.0f;
-    if (m_yaw >= 360.0f) {
-        m_yaw -= 360.0f;
-    }
-
-    // Rotate the fish 180 degrees around the pitch axis
-    m_pitch = -m_pitch;
-    if (m_pitch >= 360.0f) {
-        m_pitch -= 360.0f;
-    }
-    else if (m_pitch < 0.0f) {
-        m_pitch += 360.0f;
-    }
-
-    UpdateFishVectors();
-}
+//void Fish::Flip()
+//{
+//    // Rotate the fish 180 degrees around the yaw axis
+//    m_yaw += 180.0f;
+//    if (m_yaw >= 360.0f) {
+//        m_yaw -= 360.0f;
+//    }
+//
+//    // Rotate the fish 180 degrees around the pitch axis
+//    m_pitch = -m_pitch;
+//    if (m_pitch >= 360.0f) {
+//        m_pitch -= 360.0f;
+//    }
+//    else if (m_pitch < 0.0f) {
+//        m_pitch += 360.0f;
+//    }
+//
+//    UpdateFishVectors();
+//}
 
 
 void Fish::Wait(float waitTime) {
@@ -146,24 +146,32 @@ void Fish::StopWaiting()
 }
 
 void Fish::CheckWalls(float halfSideLength, float tankHeight) {
+    if (isTurning) return; // Skip wall checks if the fish is already turning
+
     glm::vec3 pos = GetPos();
+    bool hitBoundary = false;
+
     if (pos.x < -halfSideLength || pos.x > halfSideLength) {
         pos.x = glm::clamp(pos.x, -halfSideLength, halfSideLength);
-        SetYaw(GetYaw() + 180.0f);
-        InitialFishVectors();
+        hitBoundary = true;
     }
     if (pos.z < -halfSideLength || pos.z > halfSideLength) {
         pos.z = glm::clamp(pos.z, -halfSideLength, halfSideLength);
-        SetYaw(GetYaw() + 180.0f);
-        InitialFishVectors();
+        hitBoundary = true;
     }
     if (pos.y < -tankHeight || pos.y > tankHeight) {
         pos.y = glm::clamp(pos.y, -tankHeight, tankHeight);
-        SetPitch(GetPitch() + 180.0f);
-        InitialFishVectors();
+        hitBoundary = true;
     }
+
+    if (hitBoundary) {
+        StartUTurn();
+    }
+
     SetPos(pos);
+    UpdateFishVectors();
 }
+
 
 
 void Fish::Move(EFishMovementType direction)
@@ -310,6 +318,8 @@ void Fish::UpdateFishVectors()
 {
     float x = glm::radians(m_yaw);
     float y = glm::radians(m_pitch);
+    float z = glm::radians(m_roll);
+
 
     m_forward.x = cos(x) * cos(y);
     m_forward.y = sin(y);
@@ -408,4 +418,41 @@ glm::vec3 Fish::GetFront() const
 EFishMovementType Fish::GetMove(int index)
 {
     return m_fishMovements[index % 20];
+}
+
+void Fish::StartUTurn()
+{
+	isTurning = true;
+	turnProgress = 0.0f;
+
+	startYaw = m_yaw;
+	targetYaw = m_yaw + 180.0f;
+	if (targetYaw >= 360.0f) {
+		targetYaw -= 360.0f;
+	}
+
+	startPitch = m_pitch;
+	targetPitch = -m_pitch;
+	if (targetPitch >= 360.0f) {
+		targetPitch -= 360.0f;
+	}
+	else if (targetPitch < 0.0f) {
+		targetPitch += 360.0f;
+	}
+}
+
+void Fish::UpdateUTurn(float deltaTime)
+{
+	if (!isTurning) return;
+
+	turnProgress += deltaTime / turnDuration;
+	if (turnProgress >= 1.0f) {
+		turnProgress = 1.0f;
+		isTurning = false;
+	}
+
+	m_yaw = startYaw + turnProgress * (targetYaw - startYaw);
+	m_pitch = startPitch + turnProgress * (targetPitch - startPitch);
+
+	UpdateFishVectors();
 }

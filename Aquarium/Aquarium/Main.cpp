@@ -4,8 +4,8 @@
 #include <glfw3.h>
 #include <chrono>
 #include <stb_image.h>
-#include <cstdlib> // For rand() and srand()
-#include <ctime> // For time()
+#include <cstdlib> 
+#include <ctime> 
 
 #include "Camera.h"
 #include "Shader.h"
@@ -67,14 +67,11 @@ bool CheckCollision( Fish& fish1, Fish& fish2) {
 
 	glm::vec3 dir1 = glm::normalize(fish1.GetFront());
 	glm::vec3 dir2 = glm::normalize(fish2.GetFront());
-	//glm::vec3 toFish2 = glm::normalize(fish2.GetPos - fish1.GetPos());
-	glm::vec3 toFish2 = fish2.GetPos() - fish1.GetPos();
+	glm::vec3 toFish2 = glm::normalize(fish2.GetPos() - fish1.GetPos());
 	toFish2 = glm::normalize(toFish2);
 
-
-	// Check if fish1 is heading towards fish2
-	bool headingTowardsFish2 = glm::dot(dir1, toFish2) > 1.0f; // adjust threshold as necessary
-	// Check if fish2 is heading towards fish1
+	bool headingTowardsFish2 = glm::dot(dir1, toFish2) > 1.0f; 
+	
 	bool headingTowardsFish1 = glm::dot(dir2, -toFish2) > 1.0f; // adjust threshold as necessary
 
 	return headingTowardsFish2 || headingTowardsFish1;
@@ -89,16 +86,18 @@ struct BubbleParams
 	float startTime;
 	float radius;
 };
-float verticalSpeed = 0.2f;
+float verticalSpeed = 0.1f;
 float bubbleTime = 0.0f;
 std::vector<BubbleParams> bubbles;
+std::vector<Fish> fishes;
 
-void generateBubblesParams()
-{
-	for (int i = 0; i < numBubbles; i++)
-	{
+
+void generateBubblesParams() {
+	bubbles.clear(); // Ensure bubbles vector is empty before initialization
+	for (int i = 0; i < fishes.size(); i++) {
 		BubbleParams bubble;
-		bubble.position = glm::vec3(static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 0.1f)));
+		bubble.position = fishes[i].GetPos() + fishes[i].GetFront() * 0.5f; // Start at the fish's mouth
+		bubble.newPos = bubble.position; // Initialize newPos to the starting position
 		bubble.size = 0.1f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (0.5f - 0.1f)));
 		bubble.speed = rand() % 10 / 100.0f;
 		bubble.startTime = rand() % 10;
@@ -107,68 +106,108 @@ void generateBubblesParams()
 	}
 }
 
-void generateBubbleParams(int index)
-{
-	bubbles[index].position = glm::vec3(static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 0.1f)));
-	bubbles[index].size = rand() % 10 / 100.0f;
-	bubbles[index].speed = rand() % 10 / 100.0f;
-	bubbles[index].startTime = 0;
-	bubbles[index].radius = rand() % 10 / 10.0f;
-}
 
 glm::vec3 bubblePosition;
 
 void resetBubblePosition(int index) {
-	bubbles[index].position = bubbles[index].newPos;
+	bubbles[index].position = glm::vec3(static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 0.1f)));
 	bubbles[index].size = 0.1f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (0.5f - 0.1f)));
 	bubbles[index].startTime = 0.0f;
 }
 
+// Function to update the position of the bubble with an offset
 void updateBubblePosition(int index) {
 	static std::chrono::steady_clock::time_point lastUpdateTime = std::chrono::steady_clock::now();
 	std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
 	std::chrono::duration<double> elapsedTime = currentTime - lastUpdateTime;
 
-	lastUpdateTime = currentTime;
-	float xSpiral = 0.5f * cos(bubbles[index].speed * bubbles[index].startTime); // Compute x-coordinate of spiral
-	float zSpiral = 0.5f * sin(bubbles[index].speed * bubbles[index].startTime); // Compute z-coordinate of spiral
-	float y = verticalSpeed * bubbles[index].startTime; // Compute y-coordinate for vertical motion
-	bubbles[index].size -= 0.0001f;
+	// Spiral motion calculations
+	float xSpiral = 0.5f * cos(bubbles[index].speed * bubbles[index].startTime);
+	float zSpiral = 0.5f * sin(bubbles[index].speed * bubbles[index].startTime);
+	float y = verticalSpeed * bubbles[index].startTime;
+
+	// Update bubble parameters
+	bubbles[index].size -= 0.001f;
 	bubbles[index].startTime += 0.01f;
 
-	if (bubbles[index].size <= 0.1f)
-	{
-		if (elapsedTime.count() < 2.0)
-		{
-			resetBubblePosition(index);
-			return;
-		}
+	if (bubbles[index].size <= 0.0f) {
+		// Reset bubble to the corresponding fish's mouth
+		bubbles[index].position = fishes[index].GetPos() + fishes[index].GetFront() * 0.5f;
+		bubbles[index].size = 0.1f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (0.5f - 0.1f)));
+		bubbles[index].startTime = 0.0f;
+		return;
 	}
-	bubbles[index].position = bubbles[index].newPos + glm::vec3(xSpiral, y, zSpiral);
+
+	// Compute new position based on the spiral motion
+	bubbles[index].newPos += glm::vec3(xSpiral, y, zSpiral) * static_cast<float>(elapsedTime.count());
+	bubbles[index].position = bubbles[index].newPos;
 }
 
-void bubbleFlurry(int numBubbles, glm::vec3 position) {
-	for (int i = 0; i < numBubbles; ++i) {
+struct BubbleFlurryParams
+{
+	glm::vec3 origin;       // The origin of the bubble flurry
+	std::vector<BubbleParams> bubbles;  // Vector of bubbles
+};
+
+
+
+void generateBubbleFlurry(BubbleFlurryParams& flurry, int numBubbles, const glm::vec3& origin) {
+	flurry.origin = origin;
+	flurry.bubbles.clear();  // Ensure the vector is empty before initialization
+	for (int i = 0; i < numBubbles; i++) {
 		BubbleParams bubble;
+		bubble.position = origin; // Start at the given coordinate
+		bubble.size = 0.1f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (0.5f - 0.1f)));
+		bubble.speed = 0.1f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 0.1f));
+		bubble.startTime = static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 10.0f));
+		bubble.radius = 0.5f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 0.5f));
+		flurry.bubbles.push_back(bubble);
+	}
+}
+void updateBubbleFlurry(BubbleFlurryParams& flurry, float deltaTime) {
+	for (int i = 0; i < flurry.bubbles.size(); i++) {
+		BubbleParams& bubble = flurry.bubbles[i];
 
-		// Generate a random offset from the given position
-		float offsetX = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 2.0f) - 1.0f;
-		float offsetY = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 2.0f) - 1.0f;
-		float offsetZ = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 2.0f) - 1.0f;
+		// Spiral motion calculations
+		float xSpiral = bubble.radius * cos(bubble.speed * bubble.startTime);
+		float zSpiral = bubble.radius * sin(bubble.speed * bubble.startTime);
+		float y = verticalSpeed * bubble.startTime;
 
-		bubble.position = position + glm::vec3(offsetX, offsetY, offsetZ);
+		// Update bubble parameters
+		bubble.size -= 0.0001f;
+		bubble.startTime += deltaTime;
 
-		// Randomize other bubble parameters
-		bubble.size = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 0.4f);
-		bubble.speed = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 0.1f);
-		bubble.startTime = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 10.0f);
-		bubble.radius = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 1.0f);
+		if (bubble.size <= 0.0f) {
+			// Reset bubble to the origin of the flurry
+			bubble.position = flurry.origin;
+			bubble.size = 0.1f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (0.5f - 0.1f)));
+			bubble.startTime = 0.0f;
+			continue;
+		}
 
-		bubbles.push_back(bubble);
+		// Compute new position based on the spiral motion
+		bubble.position = flurry.origin + glm::vec3(xSpiral, y, zSpiral);
+	}
+}
+void renderBubbleFlurry(const BubbleFlurryParams& flurry, Shader& shader, Model& bubbleObj) {
+	for (const BubbleParams& bubble : flurry.bubbles) {
+		glm::mat4 bubbleModelMatrix = glm::mat4(1.0f);
+		bubbleModelMatrix = glm::translate(bubbleModelMatrix, bubble.position);
+		bubbleModelMatrix = glm::scale(bubbleModelMatrix, glm::vec3(bubble.size, bubble.size, bubble.size));
+		bubbleObj.RenderModel(shader, bubbleModelMatrix);
+	}
+}
+std::vector<BubbleFlurryParams> bubbleFlurries;
+int numFlurries = 1;  // Example: One flurry for testing
+void initBubbleFlurries(glm::vec3 pos) {
+	for (int i = 0; i < numFlurries; i++) {
+		BubbleFlurryParams flurry;
+		glm::vec3 origin = pos;  // Replace with desired coordinates
+		generateBubbleFlurry(flurry, numBubbles, origin);
+		bubbleFlurries.push_back(flurry);
 	}
 }
 
-std::vector<Fish> fishes;
 
 glm::vec3 GeneratePosition()
 {
@@ -223,6 +262,14 @@ void UpdateFishPosition(int index, EFishMovementType direction) {
 		return;
 	}
 
+	// Update U-turn if the fish is performing it
+	fish.UpdateUTurn(deltaTime);
+
+	// Skip further updates if the fish is performing a U-turn
+	if (fish.isTurning) {
+		return;
+	}
+
 	glm::vec3 originalPosition = fish.GetPos();
 
 	// Move the fish
@@ -232,9 +279,9 @@ void UpdateFishPosition(int index, EFishMovementType direction) {
 	// Check for collisions with other fishes
 	for (int i = 0; i < fishes.size(); ++i) {
 		if (i != index && CheckCollision(fish, fishes[i])) {
-			// Collision detected, revert to the original position and wait
-			//fish.SetPos(originalPosition);
-			fish.Wait(1.0f); // Wait for 1 second, adjust as needed
+			// Collision detected, revert to the original position and start U-turn
+			fish.SetPos(originalPosition);
+			fish.StartUTurn();
 			fishes[i].Wait(1.0f); // Optionally, make the other fish wait too
 			break;
 		}
@@ -247,6 +294,7 @@ void UpdateFishPosition(int index, EFishMovementType direction) {
 	}
 	fish.SetFishMovementTimer(currFishTimer - 0.01f);
 }
+
 
 
 
@@ -341,9 +389,10 @@ int main(int argc, char** argv)
 	float hue = 1.0;
 	float floorHue = 0.9;
 	bool rotateLight = true;
-	generateBubblesParams();
 	InitFishParams();
 	InitFishModels();
+
+	generateBubblesParams();
 	while (!glfwWindowShouldClose(window))
 	{
 		// per-frame time logic
@@ -414,6 +463,12 @@ int main(int argc, char** argv)
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, depthMap);
 		glDisable(GL_CULL_FACE);
+
+		for (BubbleFlurryParams& flurry : bubbleFlurries) {
+			updateBubbleFlurry(flurry, deltaTime);
+			renderBubbleFlurry(flurry, shadowMappingShader, *bubbleObj);
+		}
+
 		RenderScene(shadowMappingShader);
 
 		hue = 1;
@@ -618,6 +673,8 @@ void RenderScene(Shader& shader)
 		fish = glm::scale(fish, glm::vec3(0.5f, 0.5f, 0.5f));
 
 		glm::vec3 bubbleInitialPos = pos;
+		//move bubble at the fshs mouth
+		//bubbleInitialPos += fishes[i].GetFront() * 0.5f;
 
 		int randomFishObject = fishModels[i];
 		switch (randomFishObject)
@@ -660,6 +717,7 @@ void RenderScene(Shader& shader)
 			break;
 		}
 		bubbles[i].newPos = bubbleInitialPos;
+		updateBubblePosition(i);
 	}
 
 
@@ -706,26 +764,13 @@ void RenderScene(Shader& shader)
 
 	glEnable(GL_CULL_FACE);
 
-	for (int i = 0; i < numBubbles; i++)
-	{
-
-		//shadowMappingShader.SetFloat("alpha", 0.5f);
+	for (int i = 0; i < bubbles.size(); i++) {
 		glm::mat4 bubbleModelMatrix = glm::mat4(1.0f);
-		updateBubblePosition(i);
 		bubbleModelMatrix = glm::translate(bubbleModelMatrix, bubbles[i].position);
 		bubbleModelMatrix = glm::scale(bubbleModelMatrix, glm::vec3(bubbles[i].size, bubbles[i].size, bubbles[i].size));
 		bubbleObj->RenderModel(shader, bubbleModelMatrix);
 	}
-	//call bubble flurry method for 20 bubbles in the corner of the cube
-	//bubbleFlurry(20, glm::vec3(0.0f, 0.0f, 0.0f));
-
-	for (int i = 0; i < 20; i++)
-	{
-		glm::mat4 bubbleModelMatrix = glm::mat4(1.0f);
-		bubbleModelMatrix = glm::translate(bubbleModelMatrix, bubbles[i].newPos);
-		bubbleModelMatrix = glm::scale(bubbleModelMatrix, glm::vec3(bubbles[i].size, bubbles[i].size, bubbles[i].size));
-		bubbleObj->RenderModel(shader, bubbleModelMatrix);
-	}
+	
 
 	glDisable(GL_CULL_FACE);
 	if (IsCameraWithinROI(pCamera, movingFish.GetPos(), roiRadius) && !isInFishPerspective)
